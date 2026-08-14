@@ -19,7 +19,11 @@ self.onmessage = (event: MessageEvent<Request>) => {
     const result = optimize(svg, config);
     response = { id, ok: true, data: result.data };
   } catch (err) {
-    response = { id, ok: false, error: err instanceof Error ? err.message : "Optimization failed" };
+    response = {
+      id,
+      ok: false,
+      error: err instanceof Error ? err.message : "Optimization failed",
+    };
   }
   (self as unknown as Worker).postMessage(response);
 };

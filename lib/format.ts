@@ -12,9 +12,11 @@ export function savingsPercent(original: number, optimized: number): number {
   return ((original - optimized) / original) * 100;
 }
 
+/** Signed percentage for display. Uses a true minus sign (U+2212) so the
+ * glyph is consistent everywhere savings are shown. */
 export function formatPercent(value: number): string {
   const rounded = Math.round(value * 10) / 10;
-  return `${rounded > 0 ? "-" : rounded < 0 ? "+" : ""}${Math.abs(rounded).toFixed(1)}%`;
+  return `${rounded > 0 ? "−" : rounded < 0 ? "+" : ""}${Math.abs(rounded).toFixed(1)}%`;
 }
 
 const encoder = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
@@ -30,7 +32,9 @@ export function byteLength(str: string): number {
 export async function gzipSize(str: string): Promise<number> {
   if (typeof CompressionStream === "undefined") return byteLength(str);
   try {
-    const stream = new Blob([str]).stream().pipeThrough(new CompressionStream("gzip"));
+    const stream = new Blob([str])
+      .stream()
+      .pipeThrough(new CompressionStream("gzip"));
     const buffer = await new Response(stream).arrayBuffer();
     return buffer.byteLength;
   } catch {

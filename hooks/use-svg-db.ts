@@ -1,27 +1,28 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import {
-  getDatabase,
-  type AppDatabase,
-  type SvgDocType,
-  type PresetDocType,
-} from "@/lib/db";
+import type { AppDatabase, SvgDocType, PresetDocType } from "@/lib/db";
 import type { Settings } from "@/lib/settings";
 
-/** Resolve the shared database once, exposing a loading flag for the UI. */
+/**
+ * Resolve the shared database once, exposing a loading flag for the UI.
+ * RxDB + Dexie are dynamically imported here so the ~500KB storage chunk stays
+ * off the critical path — the page becomes interactive before it loads.
+ */
 export function useDatabase() {
   const [db, setDb] = useState<AppDatabase | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let active = true;
-    getDatabase()
+    import("@/lib/db")
+      .then(({ getDatabase }) => getDatabase())
       .then((instance) => {
         if (active) setDb(instance);
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err : new Error(String(err)));
+        if (active)
+          setError(err instanceof Error ? err : new Error(String(err)));
       });
     return () => {
       active = false;
@@ -37,7 +38,7 @@ export function useDatabase() {
  * value only changes identity when the underlying data actually changes — this
  * is what keeps downstream effects (like optimization) from looping.
  */
-function useCollectionArray<T extends { createdAt: number }>(
+function useCollectionArray<T extends { id: string; createdAt: number }>(
   db: AppDatabase | null,
   collectionName: "svgs" | "presets",
 ): T[] {
@@ -54,14 +55,21 @@ function useCollectionArray<T extends { createdAt: number }>(
         };
       };
     };
-    const sub = collection
-      .find()
-      .$.subscribe((docs) => {
-        const next = docs
-          .map((d) => d.toJSON() as T)
-          .sort((a, b) => b.createdAt - a.createdAt);
-        setRows(next);
-      });
+    const sub = collection.find().$.subscribe((docs) => {
+      const next = docs
+        .map((d) => d.toJSON() as T)
+        .sort((a, b) => b.createdAt - a.createdAt);
+      // RxDB emits fresh objects on every change anywhere in the collection.
+      // Documents are immutable in this app (insert/remove only), so if the
+      // id sequence is unchanged we keep the previous array identity —
+      // otherwise downstream effects keyed on the array re-fire spuriously.
+      setRows((prev) =>
+        prev.length === next.length &&
+        prev.every((row, i) => row.id === next[i].id)
+          ? prev
+          : next,
+      );
+    });
     return () => sub.unsubscribe();
   }, [db, collectionName]);
 

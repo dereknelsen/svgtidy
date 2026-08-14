@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookmarkPlusIcon, Share2Icon, CheckIcon, Trash2Icon, StarIcon } from "lucide-react";
+import {
+  BookmarkPlusIcon,
+  Share2Icon,
+  CheckIcon,
+  Trash2Icon,
+  StarIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +19,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { BUILT_IN_PRESETS, type Settings } from "@/lib/settings";
 import type { PresetDocType } from "@/lib/db";
 import { cn } from "@/lib/utils";
@@ -30,16 +42,25 @@ type PresetBarProps = {
   onRemove: (id: string) => void | Promise<void>;
 };
 
-export function PresetBar({ settings, onApply, savedPresets, onSave, onRemove }: PresetBarProps) {
+export function PresetBar({
+  settings,
+  onApply,
+  savedPresets,
+  onSave,
+  onRemove,
+}: PresetBarProps) {
   const [saveOpen, setSaveOpen] = useState(false);
   const [name, setName] = useState("");
 
   const activeBuiltIn = useMemo(
-    () => BUILT_IN_PRESETS.find((p) => settingsEqual(p.settings, settings))?.id ?? null,
+    () =>
+      BUILT_IN_PRESETS.find((p) => settingsEqual(p.settings, settings))?.id ??
+      null,
     [settings],
   );
   const activeSaved = useMemo(
-    () => savedPresets.find((p) => settingsEqual(p.settings, settings))?.id ?? null,
+    () =>
+      savedPresets.find((p) => settingsEqual(p.settings, settings))?.id ?? null,
     [savedPresets, settings],
   );
 
@@ -79,32 +100,39 @@ export function PresetBar({ settings, onApply, savedPresets, onSave, onRemove }:
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {BUILT_IN_PRESETS.map((preset) => {
-          const active = activeBuiltIn === preset.id;
-          return (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => onApply(preset.settings)}
-              title={preset.hint}
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-                active
-                  ? "border-success bg-success/10 text-success"
-                  : "border-border bg-card text-muted-foreground hover:border-ring hover:text-foreground",
-              )}
-            >
-              {active && <CheckIcon className="size-3" />}
-              {preset.name}
-            </button>
-          );
-        })}
-      </div>
+      <TooltipProvider delay={300}>
+        <div className="flex flex-wrap gap-1.5">
+          {BUILT_IN_PRESETS.map((preset) => {
+            const active = activeBuiltIn === preset.id;
+            return (
+              <Tooltip key={preset.id}>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={() => onApply(preset.settings)}
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                        active
+                          ? "border-success bg-success/10 text-success"
+                          : "border-border bg-card text-muted-foreground hover:border-ring hover:text-foreground",
+                      )}
+                    >
+                      {active && <CheckIcon className="size-3" />}
+                      {preset.name}
+                    </button>
+                  }
+                />
+                <TooltipContent>{preset.hint}</TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </TooltipProvider>
 
       {savedPresets.length > 0 && (
         <div className="flex flex-col gap-1">
-          <span className="text-[0.7rem] font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="text-muted-foreground text-[0.7rem] font-medium tracking-wide uppercase">
             Yours
           </span>
           {savedPresets.map((preset) => {
@@ -113,8 +141,10 @@ export function PresetBar({ settings, onApply, savedPresets, onSave, onRemove }:
               <div
                 key={preset.id}
                 className={cn(
-                  "group flex items-center justify-between rounded-lg border px-2.5 py-1.5 transition-colors",
-                  active ? "border-success/60 bg-success/5" : "border-transparent hover:bg-muted",
+                  "group flex items-center justify-between rounded-xl border px-2.5 py-1.5 transition-colors",
+                  active
+                    ? "border-success/60 bg-success/5"
+                    : "hover:bg-muted border-transparent",
                 )}
               >
                 <button
@@ -125,7 +155,9 @@ export function PresetBar({ settings, onApply, savedPresets, onSave, onRemove }:
                   <StarIcon
                     className={cn(
                       "size-3.5 shrink-0",
-                      active ? "fill-success text-success" : "text-muted-foreground",
+                      active
+                        ? "fill-success text-success"
+                        : "text-muted-foreground",
                     )}
                   />
                   <span className="truncate">{preset.name}</span>
@@ -134,7 +166,7 @@ export function PresetBar({ settings, onApply, savedPresets, onSave, onRemove }:
                   type="button"
                   aria-label={`Delete preset ${preset.name}`}
                   onClick={() => onRemove(preset.id)}
-                  className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                  className="hover:text-destructive opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                 >
                   <Trash2Icon className="size-3.5" />
                 </button>
@@ -158,7 +190,7 @@ export function PresetBar({ settings, onApply, savedPresets, onSave, onRemove }:
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
                 handleSave();
               }
             }}

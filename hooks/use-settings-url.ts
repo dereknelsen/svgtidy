@@ -1,10 +1,11 @@
 "use client";
 
-import { parseAsBoolean, parseAsInteger, useQueryStates } from "nuqs";
+import { parseAsBoolean, parseAsInteger, throttle, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
 
-const b = (key: keyof Settings) => parseAsBoolean.withDefault(DEFAULT_SETTINGS[key] as boolean);
+const b = (key: keyof Settings) =>
+  parseAsBoolean.withDefault(DEFAULT_SETTINGS[key] as boolean);
 
 const parsers = {
   removeComments: b("removeComments"),
@@ -77,6 +78,9 @@ export function useSettingsUrl() {
     urlKeys,
     history: "replace",
     clearOnDefault: true,
+    // Settings state updates live; only the history.replaceState writes are
+    // throttled so slider drags don't hammer the URL at pointer-move rate.
+    limitUrlUpdates: throttle(150),
   });
 
   const setSetting = useCallback(

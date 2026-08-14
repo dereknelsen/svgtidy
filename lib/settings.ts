@@ -87,7 +87,12 @@ export const DEFAULT_SETTINGS: Settings = {
  * Named presets. These are the "better defaults" that ship with the app so
  * the common cases are one click away.
  */
-export const BUILT_IN_PRESETS: { id: string; name: string; hint: string; settings: Settings }[] = [
+export const BUILT_IN_PRESETS: {
+  id: string;
+  name: string;
+  hint: string;
+  settings: Settings;
+}[] = [
   {
     id: "balanced",
     name: "Balanced",
@@ -176,7 +181,9 @@ export function buildSvgoConfig(s: Settings): SvgoConfig {
   // viewBox is preserved by default (best practice for responsive SVGs).
   overrides["removeViewBox"] = s.removeViewBox;
 
-  const plugins: unknown[] = [{ name: "preset-default", params: { overrides } }];
+  const plugins: unknown[] = [
+    { name: "preset-default", params: { overrides } },
+  ];
 
   if (s.sortAttrs) plugins.push("sortAttrs");
   if (s.removeDimensions) plugins.push("removeDimensions");
@@ -193,6 +200,9 @@ export function buildSvgoConfig(s: Settings): SvgoConfig {
 
 /** Safely coerce unknown data (from a URL or DB) into valid Settings. */
 export function parseSettings(input: unknown): Settings {
-  const result = v.safeParse(SettingsSchema, { ...DEFAULT_SETTINGS, ...(input as object) });
+  const result = v.safeParse(SettingsSchema, {
+    ...DEFAULT_SETTINGS,
+    ...(input as object),
+  });
   return result.success ? result.output : { ...DEFAULT_SETTINGS };
 }

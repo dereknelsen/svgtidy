@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
-import { UploadCloudIcon, FileWarningIcon } from "lucide-react";
+import { UploadCloudIcon, FileWarningIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { byteLength } from "@/lib/format";
@@ -28,18 +28,26 @@ async function readFiles(files: File[]): Promise<IncomingSvg[]> {
 
 type DropzoneProps = {
   onFiles: (files: IncomingSvg[]) => void;
-  variant?: "hero" | "compact";
+  variant?: "hero" | "compact" | "icon";
   className?: string;
 };
 
-export function Dropzone({ onFiles, variant = "hero", className }: DropzoneProps) {
+export function Dropzone({
+  onFiles,
+  variant = "hero",
+  className,
+}: DropzoneProps) {
   const onDrop = useCallback(
     async (accepted: File[], rejected: FileRejection[]) => {
       for (const r of rejected) {
         if (r.errors.some((e) => e.code === "file-too-large")) {
-          toast.error(`"${r.file.name}" is too large`, { description: "Files must be under 8 MB." });
+          toast.error(`"${r.file.name}" is too large`, {
+            description: "Files must be under 8 MB.",
+          });
         } else {
-          toast.error(`Couldn't add "${r.file.name}"`, { description: "Only SVG files are supported." });
+          toast.error(`Couldn't add "${r.file.name}"`, {
+            description: "Only SVG files are supported.",
+          });
         }
       }
       if (accepted.length === 0) return;
@@ -55,8 +63,24 @@ export function Dropzone({ onFiles, variant = "hero", className }: DropzoneProps
     maxSize: MAX_BYTES,
     multiple: true,
     noClick: variant === "hero" ? false : true,
-    noKeyboard: variant === "compact",
+    noKeyboard: variant !== "hero",
   });
+
+  if (variant === "icon") {
+    return (
+      <div className={className}>
+        <input {...getInputProps()} />
+        <button
+          type="button"
+          onClick={open}
+          aria-label="Add SVGs"
+          className="border-border text-muted-foreground hover:border-ring hover:text-foreground grid size-9 place-items-center rounded-xl border border-dashed transition-colors"
+        >
+          <PlusIcon className="size-4" />
+        </button>
+      </div>
+    );
+  }
 
   if (variant === "compact") {
     return (
@@ -65,7 +89,7 @@ export function Dropzone({ onFiles, variant = "hero", className }: DropzoneProps
         <button
           type="button"
           onClick={open}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
+          className="border-border bg-muted/40 text-muted-foreground hover:border-ring hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl border border-dashed px-3 py-2.5 text-sm transition-colors"
         >
           <UploadCloudIcon className="size-4" />
           Add more SVGs
@@ -78,7 +102,7 @@ export function Dropzone({ onFiles, variant = "hero", className }: DropzoneProps
     <div
       {...getRootProps()}
       className={cn(
-        "group relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card px-8 py-20 text-center transition-colors",
+        "group border-border bg-card relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-8 py-20 text-center transition-colors",
         "hover:border-ring/70 focus-visible:border-ring focus-visible:outline-none",
         isDragActive && "border-success bg-success/5",
         className,
@@ -87,7 +111,7 @@ export function Dropzone({ onFiles, variant = "hero", className }: DropzoneProps
       <input {...getInputProps()} />
       <div
         className={cn(
-          "mb-6 flex size-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground transition-colors",
+          "bg-muted text-muted-foreground mb-6 flex size-16 items-center justify-center rounded-2xl transition-colors",
           isDragActive && "bg-success/15 text-success",
         )}
       >
@@ -96,11 +120,11 @@ export function Dropzone({ onFiles, variant = "hero", className }: DropzoneProps
       <h2 className="text-xl font-semibold tracking-tight text-balance">
         {isDragActive ? "Drop to optimize" : "Drop SVGs to optimize"}
       </h2>
-      <p className="mt-2 max-w-sm text-pretty text-sm text-muted-foreground">
-        Drag in one file or a whole folder. Everything is processed on your device — nothing is
-        uploaded.
+      <p className="text-muted-foreground mt-2 max-w-sm text-sm text-balance">
+        Drag in files, click to browse, or paste SVG markup anywhere. Everything
+        is processed on your device; nothing is uploaded.
       </p>
-      <p className="mt-6 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+      <p className="text-muted-foreground mt-6 inline-flex items-center gap-1.5 text-xs">
         <FileWarningIcon className="size-3.5" />
         SVG only, up to 8 MB each
       </p>

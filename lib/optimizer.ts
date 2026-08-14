@@ -27,9 +27,12 @@ export class OptimizerPool {
     const count = Math.max(1, Math.min(size ?? cores, 8));
 
     for (let i = 0; i < count; i++) {
-      const worker = new Worker(new URL("../workers/svgo.worker.ts", import.meta.url), {
-        type: "module",
-      });
+      const worker = new Worker(
+        new URL("../workers/svgo.worker.ts", import.meta.url),
+        {
+          type: "module",
+        },
+      );
       worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
         const msg = event.data;
         const job = this.pending.get(msg.id);

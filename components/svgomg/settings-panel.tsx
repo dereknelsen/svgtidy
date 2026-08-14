@@ -21,15 +21,24 @@ type SettingsPanelProps = {
   changedCount: number;
 };
 
-export function SettingsPanel({ settings, onChange, onReset, changedCount }: SettingsPanelProps) {
+export function SettingsPanel({
+  settings,
+  onChange,
+  onReset,
+  changedCount,
+}: SettingsPanelProps) {
   return (
     <TooltipProvider delay={300}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center justify-between px-4 pb-3 pt-4">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3">
           <div>
-            <h2 className="text-sm font-semibold tracking-tight">Optimizations</h2>
-            <p className="text-xs text-muted-foreground">
-              {changedCount === 0 ? "Using defaults" : `${changedCount} changed from default`}
+            <h2 className="text-sm font-semibold tracking-tight">
+              Optimizations
+            </h2>
+            <p className="text-muted-foreground text-xs">
+              {changedCount === 0
+                ? "Using defaults"
+                : `${changedCount} changed from default`}
             </p>
           </div>
           <Button
@@ -53,7 +62,7 @@ export function SettingsPanel({ settings, onChange, onReset, changedCount }: Set
               <label htmlFor="precision" className="text-sm font-medium">
                 Number precision
               </label>
-              <span className="font-mono text-sm tabular-nums text-success">
+              <span className="text-success font-mono text-sm tabular-nums">
                 {settings.floatPrecision}
               </span>
             </div>
@@ -68,8 +77,9 @@ export function SettingsPanel({ settings, onChange, onReset, changedCount }: Set
                 onChange("floatPrecision", next);
               }}
             />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Decimal places for coordinates. Lower is smaller; 2–3 is safe for most icons.
+            <p className="text-muted-foreground mt-2 text-xs">
+              Decimal places for coordinates. Lower is smaller; 2–3 is safe for
+              most icons.
             </p>
           </section>
 
@@ -79,7 +89,7 @@ export function SettingsPanel({ settings, onChange, onReset, changedCount }: Set
             {SETTINGS_GROUPS.map((group) => (
               <section key={group.id}>
                 <div className="mb-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <h3 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                     {group.title}
                   </h3>
                 </div>
@@ -87,32 +97,42 @@ export function SettingsPanel({ settings, onChange, onReset, changedCount }: Set
                   {group.toggles.map((toggle) => {
                     const id = `set-${toggle.key}`;
                     return (
-                      <div key={toggle.key} className="flex items-start justify-between gap-3">
+                      <div
+                        key={toggle.key}
+                        className="flex items-start justify-between gap-3"
+                      >
                         <div className="flex min-w-0 flex-col">
                           <label
                             htmlFor={id}
-                            className="flex items-center gap-1.5 text-sm font-medium leading-none"
+                            className="flex items-center gap-1.5 text-sm leading-none font-medium"
                           >
                             {toggle.label}
                             {toggle.risky && (
                               <Tooltip>
                                 <TooltipTrigger
                                   render={
-                                    <TriangleAlertIcon className="size-3 text-warning" aria-label="May change appearance" />
+                                    <TriangleAlertIcon
+                                      className="text-warning size-3"
+                                      aria-label="May change appearance"
+                                    />
                                   }
                                 />
-                                <TooltipContent>Can change how the SVG renders</TooltipContent>
+                                <TooltipContent>
+                                  Can change how the SVG renders
+                                </TooltipContent>
                               </Tooltip>
                             )}
                           </label>
-                          <span className="mt-1 text-xs leading-snug text-muted-foreground">
+                          <span className="text-muted-foreground mt-1 text-xs leading-snug">
                             {toggle.description}
                           </span>
                         </div>
                         <Switch
                           id={id}
                           checked={settings[toggle.key]}
-                          onCheckedChange={(checked) => onChange(toggle.key, checked)}
+                          onCheckedChange={(checked) =>
+                            onChange(toggle.key, checked)
+                          }
                         />
                       </div>
                     );
