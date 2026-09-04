@@ -179,11 +179,36 @@ async function encodeWithWasm(
     const bytes = await encode(image, { quality });
     return new Blob([bytes], { type: "image/webp" });
   }
-  const { encode } = await import("@jsquash/avif");
+  const avif = await loadAvifEncoder();
+  const { defaultOptions } = await import("@jsquash/avif/meta.js");
   // AVIF speed 6 is libavif's default; faster settings visibly cost quality
   // on flat-color artwork, which is exactly what icons are.
-  const bytes = await encode(image, { quality, speed: 6 });
-  return new Blob([bytes], { type: "image/avif" });
+  const bytes = avif.encode(image.data, image.width, image.height, {
+    ...defaultOptions,
+    quality,
+    speed: 6,
+  });
+  if (!bytes) throw new Error("AVIF encoding failed");
+  // Copy out of the WASM heap so the Blob owns its bytes.
+  return new Blob([new Uint8Array(bytes)], { type: "image/avif" });
+}
+
+/**
+ * The AVIF codec is loaded straight from its single-threaded emscripten
+ * build rather than through the package's encode() wrapper. The wrapper
+ * also references the pthreads build, whose Worker + SharedArrayBuffer
+ * graph makes Turbopack's production build hang indefinitely (ADR-0001).
+ * The app never sends the cross-origin isolation headers threads need, so
+ * nothing is lost.
+ */
+let avifModule: Promise<
+  import("@jsquash/avif/codec/enc/avif_enc.js").AVIFModule
+> | null = null;
+function loadAvifEncoder() {
+  avifModule ??= import("@jsquash/avif/codec/enc/avif_enc.js").then(
+    ({ default: factory }) => factory({ noInitialRun: true }),
+  );
+  return avifModule;
 }
 
 /** Encode a rendered canvas in the requested format. */

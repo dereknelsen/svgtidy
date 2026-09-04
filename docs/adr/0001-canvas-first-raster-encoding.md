@@ -10,7 +10,7 @@ Raster export and the favicon package need PNG, WebP, and AVIF bytes produced en
 
 `lib/raster.ts` renders the SVG to a canvas and asks the browser's encoder first. A memoized 1×1 probe checks the MIME the canvas actually returns; when it isn't the requested one, encoding falls through to the jSquash WASM codecs (`@jsquash/webp`, `@jsquash/avif`), dynamically imported so the multi-megabyte codecs stay out of the main bundle. Turbopack resolves the codecs' `new URL('*.wasm', import.meta.url)` references as static assets without extra config.
 
-The multithreaded AVIF build is never selected because the app does not send the cross-origin isolation headers it needs; the single-threaded build is fast enough for icon-sized artwork.
+The AVIF codec is imported directly from its single-threaded emscripten build (`@jsquash/avif/codec/enc/avif_enc.js`) rather than through the package's `encode()` wrapper. The wrapper dynamically imports the pthreads build as well, and bundling that build's Worker + SharedArrayBuffer graph makes Turbopack's production build hang indefinitely (Vercel's 45-minute limit, reproduced locally at 0% CPU on 2026-09-04). Bisecting confirmed `@jsquash/webp` bundles fine through its wrapper. Nothing is lost by skipping threads: the app does not send the cross-origin isolation headers they need, and the single-threaded build is fast enough for icon-sized artwork.
 
 ## Consequences
 
