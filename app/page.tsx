@@ -609,9 +609,9 @@ export default function Page() {
                     {workspace && <FilesTrigger />}
                     <Link
                       href="/"
-                      className="flex items-center pb-1 transition-opacity hover:opacity-60"
+                      className="flex items-center transition-opacity hover:opacity-60"
                     >
-                      <Wordmark className="h-8" />
+                      <Wordmark className="h-10" />
                     </Link>
                   </div>
 
