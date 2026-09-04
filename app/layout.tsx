@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import { Suspense } from "react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -9,15 +10,14 @@ import { cn } from "@/lib/utils";
 
 const fontSans = localFont({
   src: "./fonts/AtkinsonHyperlegibleNextVF-Variable.woff2",
-  variable: "--font-sans",
+  variable: "--font-family-sans",
   weight: "200 800",
   display: "swap",
 });
 
-const fontMono = localFont({
-  src: "./fonts/AtkinsonHyperlegibleMonoVF-Variable.woff2",
-  variable: "--font-mono",
-  weight: "200 800",
+const fontMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-family-mono",
   display: "swap",
 });
 
@@ -35,6 +35,18 @@ export const metadata: Metadata = {
     url: "https://svgtidy.com",
     siteName: "SVGtidy",
   },
+  // icons: {
+  //   icon: [
+  //     {
+  //       url: "/icon-light.svg",
+  //       media: "(prefers-color-scheme: light)",
+  //     },
+  //     {
+  //       url: "/icon-dark.svg",
+  //       media: "(prefers-color-scheme: dark)",
+  //     },
+  //   ],
+  // },
 };
 
 export const viewport: Viewport = {

@@ -18,7 +18,7 @@ export function isMobileBrowser(): boolean {
   );
 }
 
-/** The JetBrains Mono stack from next/font, resolved from the CSS variable. */
+/** The app's mono stack from next/font, resolved from the CSS variable. */
 export function monoFontFamily(): string {
   if (typeof document === "undefined") return "monospace";
   const stack = getComputedStyle(document.documentElement)
@@ -86,6 +86,9 @@ export function loadMonaco(): Promise<Monaco> {
       const [monaco] = await Promise.all([
         import("monaco-editor/editor/editor.api.js"),
         import("monaco-editor/languages/definitions/xml/register.js"),
+        // The JSX and CSS file types render through the code view too.
+        import("monaco-editor/languages/definitions/typescript/register.js"),
+        import("monaco-editor/languages/definitions/css/register.js"),
       ]);
       defineThemes(monaco as unknown as Monaco);
       return monaco as unknown as Monaco;
@@ -113,6 +116,11 @@ function defineThemes(monaco: Monaco) {
       { token: "comment.xml", foreground: "a6a09b" },
       { token: "comment.content.xml", foreground: "a6a09b" },
       { token: "metatag.xml", foreground: "79716b" },
+      { token: "attribute.name.css", foreground: "79716b" },
+      { token: "attribute.value.css", foreground: "2a9d64" },
+      { token: "string.css", foreground: "2a9d64" },
+      { token: "delimiter.css", foreground: "a6a09b" },
+      { token: "delimiter.parenthesis.css", foreground: "a6a09b" },
     ],
     colors: {
       "editor.background": "#fafaf9",
@@ -141,6 +149,11 @@ function defineThemes(monaco: Monaco) {
       { token: "comment.xml", foreground: "6b6560" },
       { token: "comment.content.xml", foreground: "6b6560" },
       { token: "metatag.xml", foreground: "a6a09b" },
+      { token: "attribute.name.css", foreground: "a6a09b" },
+      { token: "attribute.value.css", foreground: "45b877" },
+      { token: "string.css", foreground: "45b877" },
+      { token: "delimiter.css", foreground: "6b6560" },
+      { token: "delimiter.parenthesis.css", foreground: "6b6560" },
     ],
     colors: {
       "editor.background": "#201d1b",

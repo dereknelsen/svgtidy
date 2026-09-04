@@ -1,26 +1,27 @@
 /// <reference lib="webworker" />
 // SVGO runs here, off the main thread, so batches of files never freeze the UI.
-import { optimize } from "svgo/browser";
+// All actual optimization logic lives in lib/optimize/core.ts — this file only
+// speaks the wire protocol.
+import { optimizeSvg, prettifySvg } from "../lib/optimize/core";
+import type {
+  OptimizeRequest,
+  OptimizeResponse,
+} from "../lib/optimize/protocol";
 
-type Request = {
-  id: number;
-  svg: string;
-  config: Parameters<typeof optimize>[1];
-};
-
-type Response =
-  | { id: number; ok: true; data: string }
-  | { id: number; ok: false; error: string };
-
-self.onmessage = (event: MessageEvent<Request>) => {
-  const { id, svg, config } = event.data;
-  let response: Response;
+self.onmessage = (event: MessageEvent<OptimizeRequest>) => {
+  const request = event.data;
+  let response: OptimizeResponse;
   try {
-    const result = optimize(svg, config);
-    response = { id, ok: true, data: result.data };
+    const data =
+      request.op === "optimize"
+        ? optimizeSvg(request.svg, request.settings, {
+            filename: request.filename,
+          })
+        : prettifySvg(request.svg);
+    response = { id: request.id, ok: true, data };
   } catch (err) {
     response = {
-      id,
+      id: request.id,
       ok: false,
       error: err instanceof Error ? err.message : "Optimization failed",
     };

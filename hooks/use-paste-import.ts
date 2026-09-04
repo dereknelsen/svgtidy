@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { byteLength } from "@/lib/format";
-import type { IncomingSvg } from "@/components/svgomg/dropzone";
+import type { IncomingSvg } from "@/components/dropzone";
 
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;

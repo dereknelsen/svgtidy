@@ -2,7 +2,17 @@ import coreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
 
 const eslintConfig = [
-  { ignores: [".next/**", "node_modules/**", "next-env.d.ts"] },
+  {
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "next-env.d.ts",
+      // Vendored Amplo fill-picker registry code — upgraded via the shadcn
+      // CLI, never hand-edited (see the picker's install docs).
+      "components/ui/fill-picker/**",
+      "components/ui/fill-picker-base/**",
+    ],
+  },
   ...coreWebVitals,
   ...nextTypescript,
   // eslint-plugin-react's automatic version detection relies on an API that

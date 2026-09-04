@@ -1,31 +1,52 @@
-/** Trigger a browser download for a single optimized SVG string. */
-export function downloadSvg(name: string, svg: string) {
-  const blob = new Blob([svg], { type: "image/svg+xml" });
-  downloadBlob(blob, ensureSvgExt(name));
+/** Trigger a browser download for any text file. */
+export function downloadFile(filename: string, content: string, mime: string) {
+  downloadBlob(new Blob([content], { type: mime }), filename);
 }
 
+/** Trigger a browser download for a single optimized SVG string. */
+export function downloadSvg(name: string, svg: string) {
+  downloadFile(ensureSvgExt(name), svg, "image/svg+xml");
+}
+
+export type ZipEntry = {
+  filename: string;
+  /** Text or already-encoded bytes (rasters, ICO). */
+  content: string | Uint8Array;
+};
+
 /**
- * Bundle many SVGs into a single ZIP download. fflate is dynamically imported
+ * Bundle many files into a single ZIP download. fflate is dynamically imported
  * so the compressor never rides in the main bundle. A single ZIP also avoids
  * the browser blocking N back-to-back anchor downloads on large batches.
+ *
+ * Entries arrive pre-named (extension included) — colliding names get a
+ * numeric suffix before the extension. Binary entries that are already
+ * compressed (PNG, WebP, AVIF) are stored rather than deflated again.
  */
 export async function downloadZip(
-  files: { name: string; svg: string }[],
+  files: ZipEntry[],
   zipName = "svgtidy-optimized.zip",
 ) {
   const { zipSync, strToU8 } = await import("fflate");
-  const entries: Record<string, Uint8Array> = {};
+  const entries: Record<string, Uint8Array | [Uint8Array, { level: 0 }]> = {};
   const used = new Set<string>();
   for (const file of files) {
-    let name = ensureSvgExt(file.name);
+    let name = file.filename;
     if (used.has(name)) {
-      const base = name.slice(0, -4);
+      const dot = name.lastIndexOf(".");
+      const base = dot > 0 ? name.slice(0, dot) : name;
+      const ext = dot > 0 ? name.slice(dot) : "";
       let i = 1;
-      while (used.has(`${base}-${i}.svg`)) i++;
-      name = `${base}-${i}.svg`;
+      while (used.has(`${base}-${i}${ext}`)) i++;
+      name = `${base}-${i}${ext}`;
     }
     used.add(name);
-    entries[name] = strToU8(file.svg);
+    entries[name] =
+      typeof file.content === "string"
+        ? strToU8(file.content)
+        : isCompressedImage(name)
+          ? [file.content, { level: 0 }]
+          : file.content;
   }
   const zipped = zipSync(entries, { level: 6 });
   downloadBlob(
@@ -34,7 +55,12 @@ export async function downloadZip(
   );
 }
 
-function downloadBlob(blob: Blob, filename: string) {
+function isCompressedImage(name: string) {
+  return /\.(png|webp|avif|jpe?g)$/i.test(name);
+}
+
+/** Trigger a browser download for a ready-made Blob. */
+export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

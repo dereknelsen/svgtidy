@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`formatOutput — file types > jsx: wraps a PascalCase component with a props spread 1`] = `
+"import type { SVGProps } from "react";
+
+export function IconHome(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" {...props}><path fill="#1a1a1a" d="M0 0h24v24z"/></svg>
+  );
+}
+"
+`;

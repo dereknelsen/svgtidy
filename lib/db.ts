@@ -1,17 +1,34 @@
 import {
+  addRxPlugin,
   createRxDatabase,
   type RxDatabase,
   type RxCollection,
   type RxDocument,
 } from "rxdb";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
+import { RxDBMigrationSchemaPlugin } from "rxdb/plugins/migration-schema";
 import type { Settings } from "./settings";
+
+addRxPlugin(RxDBMigrationSchemaPlugin);
 
 export type SvgDocType = {
   id: string;
   name: string;
   svg: string;
   size: number;
+  createdAt: number;
+  /** One level deep: set when the file lives in a folder, absent otherwise. */
+  folderId?: string;
+  /**
+   * Per-part color overrides for the Format layer, keyed by the part's
+   * original paint value (lowercased). Per-file data — never part of presets.
+   */
+  partColors?: Record<string, string>;
+};
+
+export type FolderDocType = {
+  id: string;
+  name: string;
   createdAt: number;
 };
 
@@ -27,13 +44,14 @@ export type PresetDocument = RxDocument<PresetDocType>;
 
 export type AppCollections = {
   svgs: RxCollection<SvgDocType>;
+  folders: RxCollection<FolderDocType>;
   presets: RxCollection<PresetDocType>;
 };
 
 export type AppDatabase = RxDatabase<AppCollections>;
 
 const svgSchema = {
-  version: 0,
+  version: 2,
   primaryKey: "id",
   type: "object",
   properties: {
@@ -42,8 +60,22 @@ const svgSchema = {
     svg: { type: "string" },
     size: { type: "number" },
     createdAt: { type: "number" },
+    folderId: { type: "string", maxLength: 100 },
+    partColors: { type: "object", additionalProperties: true },
   },
   required: ["id", "name", "svg", "size", "createdAt"],
+} as const;
+
+const folderSchema = {
+  version: 0,
+  primaryKey: "id",
+  type: "object",
+  properties: {
+    id: { type: "string", maxLength: 100 },
+    name: { type: "string" },
+    createdAt: { type: "number" },
+  },
+  required: ["id", "name", "createdAt"],
 } as const;
 
 const presetSchema = {
@@ -79,7 +111,16 @@ export function getDatabase(): Promise<AppDatabase> {
     });
 
     await db.addCollections({
-      svgs: { schema: svgSchema },
+      svgs: {
+        schema: svgSchema,
+        migrationStrategies: {
+          // v0 → v1 added the optional folderId; existing docs stay loose.
+          1: (doc) => doc,
+          // v1 → v2 added the optional partColors map.
+          2: (doc) => doc,
+        },
+      },
+      folders: { schema: folderSchema },
       presets: { schema: presetSchema },
     });
 

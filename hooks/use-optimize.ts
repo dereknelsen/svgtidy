@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getOptimizer } from "@/lib/optimizer";
-import { buildSvgoConfig, type Settings } from "@/lib/settings";
+import {
+  getOptimizer,
+  type OptimizeResult,
+  type ResultMap,
+} from "@/lib/optimize";
+import type { Settings } from "@/lib/settings";
 import { byteLength, gzipSize } from "@/lib/format";
 import type { SvgDocType } from "@/lib/db";
-import type { OptimizeResult, ResultMap } from "@/lib/types";
 
 /**
  * Re-optimizes every SVG whenever the files or settings change. Work is spread
@@ -26,6 +29,15 @@ export function useOptimize(svgs: SvgDocType[], settings: Settings) {
 
   const settingsKey = useMemo(() => JSON.stringify(settings), [settings]);
 
+  // What actually feeds the optimizer: content is immutable per id, and the
+  // name rides along because prefixIds derives its prefix from the filename.
+  // Keying on this (not array identity) keeps per-file metadata edits — part
+  // colors today — from re-running the whole pool.
+  const filesKey = useMemo(
+    () => svgs.map((s) => `${s.id}:${s.name}`).join("\n"),
+    [svgs],
+  );
+
   useEffect(() => {
     if (svgs.length === 0) {
       // Clearing stale results when the last file is removed is a state sync
@@ -36,7 +48,6 @@ export function useOptimize(svgs: SvgDocType[], settings: Settings) {
     }
 
     const runId = ++runIdRef.current;
-    const config = buildSvgoConfig(settings);
     const pool = getOptimizer();
     pendingRef.current.clear();
 
@@ -69,8 +80,10 @@ export function useOptimize(svgs: SvgDocType[], settings: Settings) {
       });
 
       for (const svg of svgs) {
+        // The filename travels with the request so prefixIds can derive its
+        // per-file prefix behind the optimizer seam.
         pool
-          .optimize(svg.svg, config)
+          .optimize(svg.svg, settings, { filename: svg.name })
           .then(async (data) => {
             if (runId !== runIdRef.current) return;
             const [size, gzip] = await Promise.all([
@@ -98,7 +111,7 @@ export function useOptimize(svgs: SvgDocType[], settings: Settings) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [svgs, settingsKey]);
+  }, [filesKey, settingsKey]);
 
   return results;
 }

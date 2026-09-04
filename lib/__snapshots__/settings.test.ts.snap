@@ -1,0 +1,110 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildSvgoConfig > builds the 'aggressive' preset config 1`] = `
+{
+  "floatPrecision": 1,
+  "js2svg": {
+    "indent": 2,
+    "pretty": false,
+  },
+  "multipass": true,
+  "plugins": [
+    {
+      "name": "preset-default",
+      "params": {
+        "overrides": {},
+      },
+    },
+    "removeTitle",
+    "convertOneStopGradients",
+    "removeOffCanvasPaths",
+    "removeDimensions",
+    "convertStyleToAttrs",
+  ],
+}
+`;
+
+exports[`buildSvgoConfig > builds the 'balanced' preset config 1`] = `
+{
+  "floatPrecision": 3,
+  "js2svg": {
+    "indent": 2,
+    "pretty": false,
+  },
+  "multipass": true,
+  "plugins": [
+    {
+      "name": "preset-default",
+      "params": {
+        "overrides": {
+          "removeDesc": false,
+        },
+      },
+    },
+  ],
+}
+`;
+
+exports[`buildSvgoConfig > builds the 'lossless' preset config 1`] = `
+{
+  "floatPrecision": 8,
+  "js2svg": {
+    "indent": 2,
+    "pretty": false,
+  },
+  "multipass": false,
+  "plugins": [
+    {
+      "name": "preset-default",
+      "params": {
+        "overrides": {
+          "collapseGroups": false,
+          "convertPathData": false,
+          "convertTransform": false,
+          "mergePaths": false,
+          "removeDesc": false,
+        },
+      },
+    },
+  ],
+}
+`;
+
+exports[`buildSvgoConfig > disables every preset-default plugin when all toggles are off 1`] = `
+{
+  "floatPrecision": 0,
+  "js2svg": {
+    "indent": 2,
+    "pretty": false,
+  },
+  "multipass": false,
+  "plugins": [
+    {
+      "name": "preset-default",
+      "params": {
+        "overrides": {
+          "cleanupIds": false,
+          "collapseGroups": false,
+          "convertColors": false,
+          "convertPathData": false,
+          "convertTransform": false,
+          "inlineStyles": false,
+          "mergePaths": false,
+          "minifyStyles": false,
+          "removeComments": false,
+          "removeDesc": false,
+          "removeDoctype": false,
+          "removeEditorsNSData": false,
+          "removeEmptyContainers": false,
+          "removeHiddenElems": false,
+          "removeMetadata": false,
+          "removeUnknownsAndDefaults": false,
+          "removeUselessStrokeAndFill": false,
+          "removeXMLProcInst": false,
+          "sortAttrs": false,
+        },
+      },
+    },
+  ],
+}
+`;

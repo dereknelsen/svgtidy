@@ -2,71 +2,37 @@
 
 import { parseAsBoolean, parseAsInteger, throttle, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
-import { DEFAULT_SETTINGS, type Settings } from "@/lib/settings";
+import {
+  DEFAULT_SETTINGS,
+  parseSettings,
+  SETTING_DESCRIPTORS,
+  SETTING_KEYS,
+  type Settings,
+} from "@/lib/settings";
 
-const b = (key: keyof Settings) =>
-  parseAsBoolean.withDefault(DEFAULT_SETTINGS[key] as boolean);
-
-const parsers = {
-  removeComments: b("removeComments"),
-  removeMetadata: b("removeMetadata"),
-  removeTitle: b("removeTitle"),
-  removeDesc: b("removeDesc"),
-  removeEditorNS: b("removeEditorNS"),
-  removeDoctype: b("removeDoctype"),
-  removeXMLProcInst: b("removeXMLProcInst"),
-  removeHiddenElems: b("removeHiddenElems"),
-  removeEmptyContainers: b("removeEmptyContainers"),
-  removeUnknownsAndDefaults: b("removeUnknownsAndDefaults"),
-  removeUselessStrokeFill: b("removeUselessStrokeFill"),
-  cleanupIds: b("cleanupIds"),
-  minifyStyles: b("minifyStyles"),
-  inlineStyles: b("inlineStyles"),
-  convertStyleToAttrs: b("convertStyleToAttrs"),
-  collapseGroups: b("collapseGroups"),
-  mergePaths: b("mergePaths"),
-  sortAttrs: b("sortAttrs"),
-  convertColors: b("convertColors"),
-  convertPathData: b("convertPathData"),
-  convertTransform: b("convertTransform"),
-  floatPrecision: parseAsInteger.withDefault(DEFAULT_SETTINGS.floatPrecision),
-  removeViewBox: b("removeViewBox"),
-  removeDimensions: b("removeDimensions"),
-  removeXMLNS: b("removeXMLNS"),
-  prettify: b("prettify"),
-  multipass: b("multipass"),
+type SettingParsers = {
+  [K in keyof Settings]: Settings[K] extends boolean
+    ? ReturnType<typeof parseAsBoolean.withDefault>
+    : ReturnType<typeof parseAsInteger.withDefault>;
 };
 
-// Compact param names keep shareable links short.
-const urlKeys: Record<keyof Settings, string> = {
-  removeComments: "rc",
-  removeMetadata: "rm",
-  removeTitle: "rt",
-  removeDesc: "rd",
-  removeEditorNS: "rns",
-  removeDoctype: "rdt",
-  removeXMLProcInst: "rxp",
-  removeHiddenElems: "rh",
-  removeEmptyContainers: "rec",
-  removeUnknownsAndDefaults: "rud",
-  removeUselessStrokeFill: "rsf",
-  cleanupIds: "ci",
-  minifyStyles: "ms",
-  inlineStyles: "is",
-  convertStyleToAttrs: "csa",
-  collapseGroups: "cg",
-  mergePaths: "mp",
-  sortAttrs: "sa",
-  convertColors: "cc",
-  convertPathData: "cpd",
-  convertTransform: "ct",
-  floatPrecision: "fp",
-  removeViewBox: "rvb",
-  removeDimensions: "rdim",
-  removeXMLNS: "rxn",
-  prettify: "pp",
-  multipass: "mpass",
-};
+// Parsers and the compact URL param names both derive from the descriptor
+// table, so a new setting is URL-syncable the moment its row exists.
+const parsers = Object.fromEntries(
+  SETTING_KEYS.map((key) => {
+    const descriptor = SETTING_DESCRIPTORS[key];
+    return [
+      key,
+      descriptor.control === "toggle"
+        ? parseAsBoolean.withDefault(DEFAULT_SETTINGS[key] as boolean)
+        : parseAsInteger.withDefault(DEFAULT_SETTINGS[key] as number),
+    ];
+  }),
+) as SettingParsers;
+
+const urlKeys = Object.fromEntries(
+  SETTING_KEYS.map((key) => [key, SETTING_DESCRIPTORS[key].urlKey]),
+) as Record<keyof Settings, string>;
 
 /**
  * The single source of truth for the current settings lives in the URL, so any
@@ -91,8 +57,10 @@ export function useSettingsUrl() {
   );
 
   const applyPreset = useCallback(
-    (preset: Settings) => {
-      setStates(preset);
+    (preset: unknown) => {
+      // Presets arrive from the DB unvalidated (and may predate the current
+      // settings shape); validate where they cross into the settings model.
+      setStates(parseSettings(preset));
     },
     [setStates],
   );
@@ -106,7 +74,7 @@ export function useSettingsUrl() {
   // Which keys currently differ from defaults (for the "modified" indicator).
   const changedCount = useMemo(() => {
     let n = 0;
-    for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]) {
+    for (const key of SETTING_KEYS) {
       if (typed[key] !== DEFAULT_SETTINGS[key]) n++;
     }
     return n;
