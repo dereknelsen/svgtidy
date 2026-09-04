@@ -23,15 +23,15 @@ const fontMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://svgtidy.com"),
-  title: "SVGtidy — SVG optimizer",
+  title: "SVGtidy | SVG optimizer and exporter",
   description:
-    "A fast, local-first SVG optimizer. Drop files, tune settings, and export smaller SVGs. Nothing leaves your browser.",
+    "Local-first SVG optimizer and exporter. Drop files, tune settings, and export smaller SVGs, WebP, Avif, PNG and favicon files.",
   applicationName: "SVGtidy",
-  keywords: ["svg", "svgo", "optimizer", "minify", "vector", "compress"],
+  keywords: ["svg", "svgo", "optimizer", "minify", "vector", "compress", "webp", "avif", "png", "favicon"],
   openGraph: {
-    title: "SVGtidy — SVG optimizer",
+    title: "SVGtidy SVG optimizer",
     description:
-      "A fast, local-first SVG optimizer. Drop files, tune settings, and export smaller SVGs. Nothing leaves your browser.",
+      "Local-first SVG optimizer and exporter. Drop files, tune settings, and export smaller SVGs, WebP, Avif, PNG and favicon files.",
     url: "https://svgtidy.com",
     siteName: "SVGtidy",
   },
