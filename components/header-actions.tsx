@@ -141,7 +141,7 @@ export function HeaderActions({
             </Button>
           }
         />
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="min-w-fit">
           <DropdownMenuItem disabled={fileCount === 0} onClick={onDownloadZip}>
             <FolderArchiveIcon />
             Download all as ZIP

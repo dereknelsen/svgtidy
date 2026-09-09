@@ -9,7 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
 const fontSans = localFont({
-  src: "./fonts/Lexend-VariableFont_wght.ttf",
+  src: "./fonts/InterVariable.woff2",
   variable: "--font-family-sans",
   weight: "200 800",
   display: "swap",
