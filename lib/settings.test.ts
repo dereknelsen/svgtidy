@@ -11,7 +11,7 @@ import {
 } from "./settings";
 
 /**
- * Contract tests: they lock the observable behaviour of the settings module —
+ * Contract tests: they lock the observable behaviour of the settings module:
  * the shipped defaults, the generated SVGO configs, URL keys, and preset
  * parsing. Defaults and URL keys are baked into shared links (absent params
  * mean the default), so changing either silently changes what old links mean;
@@ -30,7 +30,7 @@ const allToggles = (value: boolean, floatPrecision: number): Settings => {
 };
 
 describe("DEFAULT_SETTINGS", () => {
-  it("locks the shipped defaults — absent URL params mean these values", () => {
+  it("locks the shipped defaults (absent URL params mean these values)", () => {
     expect(DEFAULT_SETTINGS).toEqual({
       removeComments: true,
       removeMetadata: true,
@@ -74,7 +74,7 @@ describe("DEFAULT_SETTINGS", () => {
 describe("buildSvgoConfig", () => {
   it("builds the default config", () => {
     // removeTitle and removeViewBox are standalone plugins (off by default →
-    // absent), and sortAttrs runs inside preset-default — so the default
+    // absent), and sortAttrs runs inside preset-default, so the default
     // config is preset-default with one override and no extra plugins.
     expect(buildSvgoConfig(DEFAULT_SETTINGS)).toEqual({
       multipass: true,

@@ -111,7 +111,7 @@ export function PresetPicker({
     if (typeof value !== "string") return;
     const builtIn = BUILT_IN_PRESETS.find((p) => p.id === value);
     if (builtIn) {
-      // Built-ins predate format settings — applying one resets format too.
+      // Built-ins predate format settings, so applying one resets format too.
       onApply({ ...DEFAULT_FORMAT, ...builtIn.settings });
       return;
     }

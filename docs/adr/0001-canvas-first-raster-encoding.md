@@ -1,10 +1,10 @@
 # ADR-0001: Canvas first, WASM fallback for raster encoding
 
-**Status**: Accepted — 2026-09-04
+**Status**: Accepted (2026-09-04)
 
 ## Context
 
-Raster export and the favicon package need PNG, WebP, and AVIF bytes produced entirely in the browser (the app is local-first with no server). Every browser encodes PNG from a canvas; WebP is native in Chromium and Firefox but not everywhere; AVIF encoding is native almost nowhere. `canvas.toBlob` never throws for an unsupported type — it silently returns PNG.
+Raster export and the favicon package need PNG, WebP, and AVIF bytes produced entirely in the browser (the app is local-first with no server). Every browser encodes PNG from a canvas; WebP is native in Chromium and Firefox but not everywhere; AVIF encoding is native almost nowhere. `canvas.toBlob` never throws for an unsupported type. It silently returns PNG.
 
 ## Decision
 
@@ -14,6 +14,6 @@ The AVIF codec is imported directly from its single-threaded emscripten build (`
 
 ## Consequences
 
-- Output is identical across browsers where native and WASM agree on the format; quality settings map 1–100 in both paths.
+- Output is identical across browsers where native and WASM agree on the format; quality settings map 1 to 100 in both paths.
 - Adding another format means adding a `RASTER_FORMATS` row and, if browsers can't encode it, a fallback branch.
 - The favicon package always uses PNG, so it never touches the WASM path.

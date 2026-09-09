@@ -11,6 +11,7 @@ import {
   TextCursorInputIcon,
   Trash2Icon,
   CopyIcon,
+  ExternalLinkIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -82,6 +83,8 @@ export type FileActions = {
   downloadFolder: (id: string) => void;
   /** Open the series rename dialog for a folder's files. */
   seriesRename: (folderId: string) => void;
+  /** ZIP every stored source file (folders nested) as a backup. */
+  backupAll: () => Promise<void>;
   clearAll: () => void;
 };
 
@@ -291,7 +294,7 @@ function FolderRow({
             <SidebarMenuButton
               tooltip={folder.name}
               onClick={() => {
-                // In the icon rail, folder contents are hidden — expand the
+                // In the icon rail, folder contents are hidden, so expand the
                 // sidebar instead of toggling an invisible panel.
                 if (state === "collapsed") setSidebarOpen(true);
               }}
@@ -467,6 +470,18 @@ export function FilesSidebar({
 
   const empty = [...grouped.values()].every((list) => list.length === 0);
 
+  const [managing, setManaging] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
+
+  async function backupAll() {
+    setBackingUp(true);
+    try {
+      await actions.backupAll();
+    } finally {
+      setBackingUp(false);
+    }
+  }
+
   async function commitRename() {
     if (!renaming) return;
     const name = renameText.trim();
@@ -568,13 +583,12 @@ export function FilesSidebar({
       {svgs.length > 0 && (
         <SidebarFooter className="group-data-[collapsible=icon]:hidden">
           <Button
-            variant="ghost"
-            size="xs"
-            className="text-muted-foreground hover:text-destructive justify-start"
-            onClick={actions.clearAll}
+            variant="outline"
+            className="text-muted-foreground justify-between"
+            onClick={() => setManaging(true)}
           >
-            <Trash2Icon />
-            Remove all files
+            Clear all stored files
+            <ExternalLinkIcon />
           </Button>
         </SidebarFooter>
       )}
@@ -647,6 +661,46 @@ export function FilesSidebar({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Manage all files: back up or remove everything stored locally */}
+      <Dialog
+        open={managing}
+        onOpenChange={(open) => !open && !backingUp && setManaging(false)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Manage all files</DialogTitle>
+            <DialogDescription>
+              {svgs.length === 1 ? "1 file" : `${svgs.length} files`}
+              {folders.length > 0 &&
+                ` in ${folders.length === 1 ? "1 folder" : `${folders.length} folders`}`}{" "}
+              stored in this browser. Download a backup ZIP of the originals, or
+              remove everything. Removing can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              disabled={backingUp}
+              onClick={() => void backupAll()}
+            >
+              <DownloadIcon />
+              {backingUp ? "Preparing…" : "Download backup"}
+            </Button>
+            <Button
+              className="bg-destructive/10 text-destructive hover:bg-destructive/20"
+              disabled={backingUp}
+              onClick={() => {
+                actions.clearAll();
+                setManaging(false);
+              }}
+            >
+              <Trash2Icon />
+              Remove all files
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }

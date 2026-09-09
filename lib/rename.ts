@@ -2,11 +2,11 @@
  * Series rename: Figma-style batch renaming over a list of file names.
  * Pure so the dialog preview and the commit share one implementation.
  *
- * Template tokens (inserted via the dialog's chips, but plain text — typing
+ * Template tokens (inserted via the dialog's chips, but plain text, so typing
  * them works too):
- *   $name — the file's current name (without extension)
- *   $n↑   — ascending number, starting at `startFrom`
- *   $n↓   — descending number, ending at `startFrom`
+ *   $name: the file's current name (without extension)
+ *   $n↑:   ascending number, starting at `startFrom`
+ *   $n↓:   descending number, ending at `startFrom`
  */
 
 export type SeriesRenameOptions = {

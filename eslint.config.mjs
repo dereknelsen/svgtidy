@@ -7,7 +7,7 @@ const eslintConfig = [
       ".next/**",
       "node_modules/**",
       "next-env.d.ts",
-      // Vendored Amplo fill-picker registry code — upgraded via the shadcn
+      // Vendored Amplo fill-picker registry code, upgraded via the shadcn
       // CLI, never hand-edited (see the picker's install docs).
       "components/ui/fill-picker/**",
       "components/ui/fill-picker-base/**",

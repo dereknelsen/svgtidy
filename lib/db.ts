@@ -21,7 +21,7 @@ export type SvgDocType = {
   folderId?: string;
   /**
    * Per-part color overrides for the Format layer, keyed by the part's
-   * original paint value (lowercased). Per-file data — never part of presets.
+   * original paint value (lowercased). Per-file data, never part of presets.
    */
   partColors?: Record<string, string>;
 };
@@ -95,7 +95,7 @@ let dbPromise: Promise<AppDatabase> | null = null;
 
 /**
  * Create (or reuse) the local-first database. Everything lives in the browser
- * via IndexedDB (Dexie) — no server, no network, no auth.
+ * via IndexedDB (Dexie). Nothing touches a server or the network.
  */
 export function getDatabase(): Promise<AppDatabase> {
   if (dbPromise) return dbPromise;

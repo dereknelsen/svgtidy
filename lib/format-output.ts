@@ -6,7 +6,7 @@ import type { FormatSettings } from "./format-settings";
 
 /**
  * The Format layer: pure projections applied AFTER the optimizer. Everything
- * here is a lexical string transform in the style of lib/export.ts — no DOM —
+ * here is a lexical string transform in the style of lib/export.ts, with no DOM,
  * so it runs identically in the browser, tests, and (if ever needed) workers.
  *
  * Optimized SVGO output is regular enough (`attr="value"` pairs, one root
@@ -237,7 +237,7 @@ function cssSizeDeclarations(format: FormatSettings): string {
 /**
  * The CSS file type: the (visually formatted) SVG as a data URI, wrapped in
  * the snippet the user will paste. A data URI renders as a standalone
- * document, so xmlns is restored if the optimizer stripped it — without it
+ * document, so xmlns is restored if the optimizer stripped it. Without it
  * the browser shows nothing.
  */
 export function formatCss(
@@ -270,7 +270,7 @@ export function formatCss(
 
 /**
  * Visual-only transforms (size, color, empty rect) with no file-type
- * wrapping — this feeds the preview <img> for every file type, so what the
+ * wrapping. This feeds the preview <img> for every file type, so what the
  * user sees always matches the paints and box of what they'll export.
  */
 export function formatPreviewSvg(

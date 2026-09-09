@@ -89,8 +89,8 @@ import Link from "next/link";
 
 /**
  * The header lives inside the INNER (inspector) SidebarProvider, so anything
- * there that should drive the files sidebar can't call useSidebar directly —
- * it would resolve to the wrong provider. This bridge captures the outer
+ * there that should drive the files sidebar can't call useSidebar directly,
+ * because it would resolve to the wrong provider. This bridge captures the outer
  * context just below the outer provider and re-publishes it.
  */
 const FilesSidebarContext = createContext<ReturnType<typeof useSidebar> | null>(
@@ -130,7 +130,7 @@ function FilesTrigger() {
 
 /**
  * Sidebar shortcut bridges. Each must render INSIDE its SidebarProvider (and
- * outside the Sidebar itself — on mobile the sidebar body unmounts while
+ * outside the Sidebar itself: on mobile the sidebar body unmounts while
  * closed, which would unregister the very shortcut that opens it).
  */
 function FilesSidebarHotkeys({
@@ -289,7 +289,8 @@ export default function Page() {
   // Paste an SVG (file or markup) anywhere on the page to add it.
   usePasteImport(handleAddFiles);
 
-  // The canvas is always a dropzone — no click/keyboard, just drag-and-drop.
+  // The canvas is always a dropzone. It accepts drag-and-drop only, with no
+  // click or keyboard affordance.
   const {
     getRootProps: getCanvasDropProps,
     getInputProps: getCanvasDropInputProps,
@@ -332,7 +333,7 @@ export default function Page() {
     [selected],
   );
 
-  /** The svg-type visual markup — feeds preview, compare, data URI, CSS. */
+  /** The svg-type visual markup. Feeds preview, compare, data URI, and CSS. */
   const visualSvg = useMemo(
     () =>
       selectedOutput && formatCtx
@@ -371,7 +372,7 @@ export default function Page() {
     [visualSvg, format, formatCtx],
   );
 
-  /** The export projection — what Copy, Download, and the Code view produce. */
+  /** The export projection: what Copy, Download, and the Code view produce. */
   const formatted = useMemo(
     () =>
       selectedOutput && formatCtx
@@ -484,7 +485,32 @@ export default function Page() {
         if (files.length === 0) return;
         void downloadZip(files, `${folder?.name ?? "svgtidy"}.zip`);
       },
-      clearAll: () => void clearSvgs(),
+      backupAll: async () => {
+        // Back up the stored sources, not the formatted output, so the ZIP
+        // round-trips: re-adding it restores the files exactly as they were.
+        const folderName = new Map(folders.map((f) => [f.id, f.name]));
+        const files = svgs.map((svg) => {
+          const name = svg.name.toLowerCase().endsWith(".svg")
+            ? svg.name
+            : `${svg.name}.svg`;
+          const dir = svg.folderId ? folderName.get(svg.folderId) : undefined;
+          return { filename: dir ? `${dir}/${name}` : name, content: svg.svg };
+        });
+        if (files.length === 0) return;
+        try {
+          await downloadZip(files, "svgtidy-backup.zip");
+          toast.success(
+            `Downloading ${files.length} ${files.length === 1 ? "file" : "files"} as a backup ZIP`,
+          );
+        } catch {
+          toast.error("Couldn't build the backup ZIP");
+        }
+      },
+      clearAll: () => {
+        const count = svgs.length;
+        void clearSvgs();
+        toast.success(`Removed ${count} ${count === 1 ? "file" : "files"}`);
+      },
     }),
     [
       svgs,

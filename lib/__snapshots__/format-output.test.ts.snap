@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`formatOutput — file types > jsx: wraps a PascalCase component with a props spread 1`] = `
+exports[`formatOutput: file types > jsx: wraps a PascalCase component with a props spread 1`] = `
 "import type { SVGProps } from "react";
 
 export function IconHome(props: SVGProps<SVGSVGElement>) {

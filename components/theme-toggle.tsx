@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 
 /**
  * Both icons are always rendered and CSS picks the visible one, so the
- * server-rendered markup is already correct for either theme — no mount guard,
- * no icon swap on hydration.
+ * server-rendered markup is already correct for either theme, with no mount guard
+ * and no icon swap on hydration.
  */
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();

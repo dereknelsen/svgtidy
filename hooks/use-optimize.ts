@@ -31,8 +31,8 @@ export function useOptimize(svgs: SvgDocType[], settings: Settings) {
 
   // What actually feeds the optimizer: content is immutable per id, and the
   // name rides along because prefixIds derives its prefix from the filename.
-  // Keying on this (not array identity) keeps per-file metadata edits — part
-  // colors today — from re-running the whole pool.
+  // Keying on this (not array identity) keeps per-file metadata edits (part
+  // colors today) from re-running the whole pool.
   const filesKey = useMemo(
     () => svgs.map((s) => `${s.id}:${s.name}`).join("\n"),
     [svgs],

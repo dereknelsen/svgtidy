@@ -18,7 +18,7 @@ export type FaviconOptions = {
    * touch icon, Windows tile, maskable Android icon).
    */
   backgroundColor: string;
-  /** Fraction of the icon left empty around the glyph on padded icons (0–0.45). */
+  /** Fraction of the icon left empty around the glyph on padded icons (0 to 0.45). */
   padding: number;
 };
 
@@ -33,7 +33,7 @@ export const DEFAULT_FAVICON_OPTIONS: FaviconOptions = {
 export type FaviconPng = {
   filename: string;
   size: number;
-  /** Opaque background + padding — for platforms that don't do transparency. */
+  /** Opaque background + padding, for platforms that don't do transparency. */
   padded: boolean;
   /** What the file is for; shown in the dialog's file list. */
   purpose: string;

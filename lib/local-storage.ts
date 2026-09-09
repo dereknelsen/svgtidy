@@ -1,6 +1,6 @@
 /**
  * Tiny localStorage wrapper: SSR-safe (no window on the server), quota-safe,
- * and JSON-typed. Callers validate what comes out — storage is untrusted
+ * and JSON-typed. Callers validate what comes out, since storage is untrusted
  * exactly like URL params and DB presets.
  */
 
@@ -19,6 +19,6 @@ export function writeLocal(key: string, value: unknown): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Quota or privacy mode — losing a convenience snapshot is fine.
+    // Quota or privacy mode. Losing a convenience snapshot is fine.
   }
 }

@@ -28,7 +28,7 @@ export function DiffView({ original, optimized }: DiffViewProps) {
     let active = true;
     const pool = getOptimizer();
     // Minified SVG is a single line, so both sides are prettified in the
-    // worker before diffing — otherwise every diff is "the whole file changed".
+    // worker before diffing. Otherwise every diff is "the whole file changed".
     const prettify = (svg: string) => pool.prettify(svg).catch(() => svg);
 
     // Keep the previous diff on screen while the next one computes.

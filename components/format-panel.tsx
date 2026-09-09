@@ -58,7 +58,7 @@ const SWATCHES_KEY = "svgtidy:swatches";
 
 type FormatPanelProps = {
   svg: SvgDocType | null;
-  /** The selected file's optimized output — the palette source. */
+  /** The selected file's optimized output, the palette source. */
   optimizedSvg: string | null;
   format: FormatSettings;
   onFormatChange: <K extends keyof FormatSettings>(
@@ -69,7 +69,7 @@ type FormatPanelProps = {
   /** Opens the series rename dialog for the file's folder; null when loose. */
   onSeriesRename: (() => void) | null;
   onPartColorsChange: (id: string, partColors: Record<string, string>) => void;
-  /** A part slot is being hovered/edited — the preview dims the others. */
+  /** A part slot is being hovered/edited, so the preview dims the others. */
   onPartHover: (partKey: string | null) => void;
 };
 
@@ -81,7 +81,7 @@ function loadSwatches(): string[] {
 }
 
 /**
- * The user's saved playground composition — the full picker surface, opened
+ * The user's saved playground composition: the full picker surface, opened
  * per color slot. `value` is the slot's current css color; commits stream out
  * as hex (or hex8 with alpha) while dragging.
  */
@@ -96,7 +96,7 @@ function PartColorPopover({
   value: string;
   onCommit: (css: string) => void;
   onOpenChange?: (open: boolean) => void;
-  /** Must render a native <button> — Base UI's trigger contract. */
+  /** Must render a native <button>, per Base UI's trigger contract. */
   trigger: React.ReactElement;
 }) {
   const { resolvedTheme } = useTheme();
@@ -242,7 +242,7 @@ function SwitchRow({
 /**
  * The Format section of the inspector: how the optimized file is named,
  * packaged, sized, and colored on its way out. Everything here is a pure
- * projection — it never changes the optimizer's output.
+ * projection. It never changes the optimizer's output.
  */
 export function FormatPanel({
   svg,

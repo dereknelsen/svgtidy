@@ -10,11 +10,11 @@ import * as v from "valibot";
  * `SETTING_DESCRIPTORS` is the single source of truth: the `Settings` type,
  * defaults, validation schema, URL parameter names, panel copy, and the SVGO
  * config are all derived from it. Adding a setting means adding one row here
- * and listing its key in a `SETTINGS_GROUP_META` group — everything else
+ * and listing its key in a `SETTINGS_GROUP_META` group. Everything else
  * follows.
  *
  * Row order is SVGO execution order: standalone plugins are pushed in the
- * order their rows appear. Panel display order is separate — it lives in the
+ * order their rows appear. Panel display order is separate. It lives in the
  * `keys` lists of `SETTINGS_GROUP_META`.
  */
 
@@ -60,7 +60,7 @@ export const SETTING_DESCRIPTORS = {
     svgo: { kind: "preset-override", plugin: "removeMetadata" },
   },
   // removeTitle is not part of preset-default, so it must be pushed
-  // explicitly — unlike removeDesc just below, which preset-default runs.
+  // explicitly, unlike removeDesc just below, which preset-default runs.
   removeTitle: {
     default: false,
     urlKey: "rt",
@@ -273,7 +273,7 @@ export const SETTING_DESCRIPTORS = {
     urlKey: "rvb",
     control: "toggle",
     label: "Remove viewBox",
-    description: "Not recommended — breaks responsive scaling.",
+    description: "Not recommended: breaks responsive scaling.",
     risky: true,
     svgo: { kind: "standalone", plugin: "removeViewBox" },
   },
@@ -326,7 +326,7 @@ export const SETTING_DESCRIPTORS = {
     control: { kind: "slider", min: 0, max: 8, step: 1 },
     label: "Number precision",
     description:
-      "Decimal places for coordinates. Lower is smaller; 2–3 is safe for most icons.",
+      "Decimal places for coordinates. Lower is smaller; 2 to 3 is safe for most icons.",
     svgo: { kind: "config", field: "floatPrecision" },
   },
   prettify: {

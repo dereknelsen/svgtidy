@@ -7,7 +7,7 @@ const XLINK_NS = "http://www.w3.org/1999/xlink";
  * Make markup renderable as a standalone image. Optimized output can legally
  * drop `xmlns` (the removeXMLNS setting exists for inlining into HTML), but a
  * browser will not render a namespace-less SVG loaded via an object URL or
- * <img>. Used for previews only — downloads and copies keep the real output.
+ * <img>. Used for previews only. Downloads and copies keep the real output.
  */
 export function ensureSvgXmlns(svg: string): string {
   const rootMatch = svg.match(/<svg\b[^>]*/);

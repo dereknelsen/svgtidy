@@ -12,7 +12,7 @@ import type { Settings } from "@/lib/settings";
 /**
  * Resolve the shared database once, exposing a loading flag for the UI.
  * RxDB + Dexie are dynamically imported here so the ~500KB storage chunk stays
- * off the critical path — the page becomes interactive before it loads.
+ * off the critical path, so the page becomes interactive before it loads.
  */
 export function useDatabase() {
   const [db, setDb] = useState<AppDatabase | null>(null);
@@ -40,7 +40,7 @@ export function useDatabase() {
 /**
  * Subscribe to a collection and keep a stable array reference between renders.
  * The rows are sorted at subscription time (newest first), so the returned
- * value only changes identity when the underlying data actually changes — this
+ * value only changes identity when the underlying data actually changes. This
  * is what keeps downstream effects (like optimization) from looping.
  */
 function useCollectionArray<T extends { id: string; createdAt: number }>(
@@ -67,7 +67,7 @@ function useCollectionArray<T extends { id: string; createdAt: number }>(
       // RxDB emits fresh objects on every change anywhere in the collection.
       // Mutations here are insert/remove, renames, folder moves, and part
       // color edits, so the identity guard checks id, name, folderId, and
-      // partColors (tiny maps — stringify is cheap) — an unchanged sequence
+      // partColors (tiny maps, so stringify is cheap). An unchanged sequence
       // keeps the previous array so downstream effects don't re-fire.
       type Row = {
         id: string;

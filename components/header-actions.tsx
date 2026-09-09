@@ -40,7 +40,7 @@ type HeaderActionsProps = {
   formatted: FormattedFile | null;
   /** The selected file as a bare data URI, honoring the CSS encoding settings. */
   dataUri: string | null;
-  /** The selected file's CSS snippet — what the CSS file type would produce. */
+  /** The selected file's CSS snippet: what the CSS file type would produce. */
   css: string | null;
   fileType: FileType;
   fileCount: number;
@@ -99,7 +99,7 @@ export function HeaderActions({
               onClick={() => formatted && copy(formatted.content, typeLabel)}
             >
               {copied ? <CheckIcon className="text-success" /> : <CopyIcon />}
-              Copy
+              <span className="hidden lg:inline-flex">Copy</span>
             </Button>
           }
         />
@@ -122,7 +122,7 @@ export function HeaderActions({
               }
             >
               <DownloadIcon />
-              Download
+              <span className="hidden lg:inline-flex">Download</span>
             </Button>
           }
         />

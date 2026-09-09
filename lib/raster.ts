@@ -52,12 +52,12 @@ export type RasterOptions = {
   format: RasterFormat;
   width: number;
   height: number;
-  /** 1–100 for lossy formats; ignored for PNG. */
+  /** 1 to 100 for lossy formats; ignored for PNG. */
   quality?: number;
   /** A CSS color painted under the artwork; omit for transparency. */
   background?: string;
   /**
-   * Fraction of the shorter side left empty around the artwork (0–0.45).
+   * Fraction of the shorter side left empty around the artwork (0 to 0.45).
    * Favicons use it to keep glyphs inside the maskable safe zone.
    */
   padding?: number;

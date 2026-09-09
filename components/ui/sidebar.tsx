@@ -199,7 +199,7 @@ function Sidebar({
 
   return (
     <div
-      className="group peer text-sidebar-foreground hidden md:block"
+      className="group peer text-sidebar-foreground hidden lg:block"
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
@@ -307,15 +307,12 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
   );
 }
 
-function SidebarInput({
-  className,
-  ...props
-}: React.ComponentProps<"input">) {
+function SidebarInput({ className, ...props }: React.ComponentProps<"input">) {
   return (
     <InputGroup
       data-slot="sidebar-input"
       data-sidebar="input"
-      className={cn("h-8 w-full shadow-none", className)}
+      className={cn("w-full shadow-none", className)}
     >
       <InputGroupInput {...props} />
       <InputGroupAddon align="inline-start">

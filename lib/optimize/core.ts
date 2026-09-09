@@ -3,7 +3,7 @@ import { buildSvgoConfig, type Settings, type SvgoConfig } from "../settings";
 
 /**
  * The pure core of the app: this SVG + these settings → this smaller SVG.
- * Synchronous and DOM-free, so tests exercise real SVGO in-process — the
+ * Synchronous and DOM-free, so tests exercise real SVGO in-process. The
  * worker pool is just the adapter that runs the same functions off the main
  * thread.
  */

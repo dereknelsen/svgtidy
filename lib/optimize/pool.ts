@@ -10,7 +10,7 @@ type Pending = {
  * A small round-robin pool of SVGO workers. Spreading files across several
  * threads is what makes multi-file batches feel instant instead of blocking.
  *
- * The interface speaks the app's vocabulary — `Settings`, not SVGO configs.
+ * The interface speaks the app's vocabulary: `Settings`, not SVGO configs.
  * Everything SVGO happens behind the seam, in the worker (see core.ts, which
  * tests call directly in-process).
  */

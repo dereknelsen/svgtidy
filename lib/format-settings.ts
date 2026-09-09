@@ -2,7 +2,7 @@ import * as v from "valibot";
 import type { CssQuotes, DataUriEncoding } from "./export";
 
 /**
- * The format settings model — the export-shaping half of the app's settings,
+ * The format settings model: the export-shaping half of the app's settings,
  * applied AFTER the optimizer as a pure projection (see lib/format-output.ts).
  * It deliberately mirrors lib/settings.ts: one descriptor table drives the
  * type, defaults, validation, and URL parameter names. It stays a separate
@@ -104,7 +104,7 @@ export const DEFAULT_FORMAT: FormatSettings = {
 
 export const FILE_TYPES = ["svg", "jsx", "symbol", "css"] as const;
 
-/** Panel copy for the file-type select — one sentence per option. */
+/** Panel copy for the file-type select, one sentence per option. */
 export const FILE_TYPE_OPTIONS: {
   value: FileType;
   label: string;
@@ -145,7 +145,7 @@ export const CSS_SNIPPETS = [
   "mask",
 ] as const;
 
-/** Panel copy for the snippet select — the gotcha each shape avoids. */
+/** Panel copy for the snippet select: the gotcha each shape avoids. */
 export const CSS_SNIPPET_OPTIONS: {
   value: CssSnippet;
   label: string;

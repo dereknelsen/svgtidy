@@ -68,7 +68,7 @@ type BottomMode = "diff" | "code";
 type SvgViewerProps = {
   svg: SvgDocType | null;
   result: OptimizeResult | undefined;
-  /** The export projection (Format layer) — what Copy/Download produce. */
+  /** The export projection (Format layer): what Copy/Download produce. */
   formatted: FormattedFile | null;
   /** The visual projection for the preview <img>, highlight included. */
   previewSvg: string | null;
@@ -149,7 +149,7 @@ function ToolToggles({
   tool: StageTool | null;
   onToolChange: (tool: StageTool | null) => void;
 }) {
-  // With the zoom tool active, ⌥ inverts it — mirror that in the icon.
+  // With the zoom tool active, ⌥ inverts it, so mirror that in the icon.
   const zoomInverted = useAltHeld() && tool === "zoom";
   return (
     <ToggleGroup
@@ -168,7 +168,7 @@ function ToolToggles({
             </ToggleGroupItem>
           }
         />
-        <TooltipContent>Pan — H, or hold Space</TooltipContent>
+        <TooltipContent>Pan (H, or hold Space)</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger
@@ -178,13 +178,13 @@ function ToolToggles({
             </ToggleGroupItem>
           }
         />
-        <TooltipContent>Zoom — Z · click in, ⌥-click out</TooltipContent>
+        <TooltipContent>Zoom (Z) · click in, ⌥-click out</TooltipContent>
       </Tooltip>
     </ToggleGroup>
   );
 }
 
-/** [−] [100%] [+] [reset] — drives the preview stage's view. */
+/** [−] [100%] [+] [reset]: drives the preview stage's view. */
 function ZoomControls({
   view,
   onViewChange,
@@ -219,11 +219,11 @@ function ZoomControls({
             </Button>
           }
         />
-        <TooltipContent>Zoom out — ⌘ scroll</TooltipContent>
+        <TooltipContent>Zoom out (⌘ scroll)</TooltipContent>
       </Tooltip>
       <Input
         aria-label="Zoom level"
-        className="h-8 w-16 text-center"
+        className="h-8 w-16 min-w-[8ch] text-center"
         value={text ?? `${Math.round(view.zoom * 100)}%`}
         onFocus={(e) => {
           setText(`${Math.round(view.zoom * 100)}`);
@@ -251,7 +251,7 @@ function ZoomControls({
             </Button>
           }
         />
-        <TooltipContent>Zoom in — ⌘ scroll</TooltipContent>
+        <TooltipContent>Zoom in (⌘ scroll)</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger

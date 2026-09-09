@@ -110,7 +110,7 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
   const precisionVisible =
     !q || matchesQuery(precision.label, precision.description);
 
-  // The panel takes its natural height — the inspector itself scrolls, so
+  // The panel takes its natural height. The inspector itself scrolls, so
   // groups always expand fully instead of scrolling inside a nested area.
   return (
     <div className="flex flex-col">

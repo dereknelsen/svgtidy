@@ -9,15 +9,15 @@ One user-facing optimization option, named for what it does to the user's file r
 _Avoid_: option, flag, plugin toggle
 
 **Setting descriptor**:
-The single row in `SETTING_DESCRIPTORS` (`lib/settings.ts`) holding everything the app knows about one setting — default, URL key, control, panel copy, risk flag, and SVGO mapping. The type, schema, defaults, URL parsers, panel groups, and SVGO config are all derived from it.
+The single row in `SETTING_DESCRIPTORS` (`lib/settings.ts`) holding everything the app knows about one setting: default, URL key, control, panel copy, risk flag, and SVGO mapping. The type, schema, defaults, URL parsers, panel groups, and SVGO config are all derived from it.
 _Avoid_: config entry, settings metadata
 
 **URL key**:
-The compact query-param name for a setting (`rc`, `fp`, `mpass`). Frozen — they are baked into shared links and must never change meaning.
+The compact query-param name for a setting (`rc`, `fp`, `mpass`). Frozen: they are baked into shared links and must never change meaning.
 _Avoid_: param, short code
 
 **Preset**:
-A complete, named snapshot of both halves of the model — optimization `Settings` plus `FormatSettings`, stored flat — built-in (ships with the app) or saved (user-created, stored in the DB). Saved presets are unvalidated until they cross into the models via `parseSettings` / `parseFormatSettings`; presets that predate format settings apply with format defaults.
+A complete, named snapshot of both halves of the model (optimization `Settings` plus `FormatSettings`, stored flat), built-in (ships with the app) or saved (user-created, stored in the DB). Saved presets are unvalidated until they cross into the models via `parseSettings` / `parseFormatSettings`; presets that predate format settings apply with format defaults.
 _Avoid_: profile, template
 
 **Risky**:
@@ -29,11 +29,11 @@ The full-bleed main area, split into two stacked panels and permanently a dropzo
 _Avoid_: preview pane, viewer area
 
 **Split**:
-The canvas' two stacked, resizable panels. The bottom panel collapses to just its header bar and never fully disappears, so it can always be reopened. Diff always compares original against optimized — the Format layer's output appears only in Code.
+The canvas' two stacked, resizable panels. The bottom panel collapses to just its header bar and never fully disappears, so it can always be reopened. Diff always compares original against optimized. The Format layer's output appears only in Code.
 _Avoid_: pane divider, layout
 
 **Format**:
-The export-shaping layer applied after the Optimizer: file name, file type (SVG / JSX / Symbol / CSS), size, colors, and the empty-rectangle extra. A pure projection — it never changes the Optimizer's output, and Preview, Code, Copy, and Download all consume the same formatted result. Lives in `lib/format-output.ts` + `lib/format-settings.ts`, edited in the inspector's Format panel, exported from the header's Copy/Download group.
+The export-shaping layer applied after the Optimizer: file name, file type (SVG / JSX / Symbol / CSS), size, colors, and the empty-rectangle extra. A pure projection: it never changes the Optimizer's output, and Preview, Code, Copy, and Download all consume the same formatted result. Lives in `lib/format-output.ts` + `lib/format-settings.ts`, edited in the inspector's Format panel, exported from the header's Copy/Download group.
 _Avoid_: export settings, output options
 
 **CSS snippet**:
@@ -41,11 +41,11 @@ The CSS written around the data URI when the file type is CSS: bare data URI, `u
 _Avoid_: CSS template, wrapper, output mode
 
 **Part**:
-One distinct paint value (fill or stroke) in the optimized output — the unit of recoloring. The paint value itself is the part's stable key, so per-part color overrides survive re-optimization. Part colors are per-file data stored on the file, never part of presets. Hovering a part's slot in the Format panel dims every other part in the preview.
+One distinct paint value (fill or stroke) in the optimized output, the unit of recoloring. The paint value itself is the part's stable key, so per-part color overrides survive re-optimization. Part colors are per-file data stored on the file, never part of presets. Hovering a part's slot in the Format panel dims every other part in the preview.
 _Avoid_: layer, shape, element
 
 **Series rename**:
-The Figma-style batch rename dialog (Match, Rename-to with name/number tokens, start-from, live preview) over a folder's files — or a single loose file. Opened from a folder's menu, the Format panel's name row, or `⌘R`.
+The Figma-style batch rename dialog (Match, Rename-to with name/number tokens, start-from, live preview) over a folder's files, or a single loose file. Opened from a folder's menu, the Format panel's name row, or `⌘R`.
 _Avoid_: batch rename, bulk edit
 
 **Last-used**:
@@ -53,7 +53,7 @@ The localStorage snapshot that seeds format settings when the URL carries none. 
 _Avoid_: sticky settings, remembered settings
 
 **Files sidebar**:
-The collapsible left rail listing folders and files, grouped by date, with the filter box at the top — the only file list. Collapses to an icon rail of thumbnails on desktop (`⌘B`) and to a sheet on mobile.
+The collapsible left rail listing folders and files, grouped by date, with the filter box at the top. It is the only file list. Collapses to an icon rail of thumbnails on desktop (`⌘B`) and to a sheet on mobile.
 _Avoid_: file tray, file list panel
 
 **Folder**:
@@ -77,9 +77,9 @@ The ZIP the "Generate favicons" dialog builds from the selected file: `favicon.i
 _Avoid_: icon set, app icons, favicon bundle
 
 **Stale**:
-A prior optimized output still shown (dimmed) while a re-optimize is in flight. The stale-while-revalidate rule lives in `lib/optimize/result.ts`: every consumer — canvas, stats, downloads, copies — uses the same stale bytes via `outputOf`, never a mix.
+A prior optimized output still shown (dimmed) while a re-optimize is in flight. The stale-while-revalidate rule lives in `lib/optimize/result.ts`: every consumer (canvas, stats, downloads, copies) uses the same stale bytes via `outputOf`, never a mix.
 _Avoid_: outdated, pending
 
 **Optimizer**:
-The module behind `lib/optimize` that turns an SVG plus `Settings` into optimized (or prettified) markup. Its interface speaks the app's vocabulary — `optimize(svg, settings, { filename })`, `prettify(svg)`; everything SVGO (configs, plugins, the worker wire protocol) stays behind the seam. Two adapters satisfy it: the worker pool in the browser, and the pure core (`lib/optimize/core.ts`) that tests call in-process.
+The module behind `lib/optimize` that turns an SVG plus `Settings` into optimized (or prettified) markup. Its interface speaks the app's vocabulary: `optimize(svg, settings, { filename })`, `prettify(svg)`. Everything SVGO (configs, plugins, the worker wire protocol) stays behind the seam. Two adapters satisfy it: the worker pool in the browser, and the pure core (`lib/optimize/core.ts`) that tests call in-process.
 _Avoid_: pool, worker (those name the browser adapter, not the module)

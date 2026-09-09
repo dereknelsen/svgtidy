@@ -17,7 +17,7 @@ type CompareSliderProps = {
  * Draggable before/after comparison over the preview. The original render sits
  * on the left of the divider, the optimized output on the right, so sliding
  * right reveals more of the original. Position updates track the pointer 1:1
- * with no easing — direct manipulation shouldn't lag its input.
+ * with no easing, because direct manipulation shouldn't lag its input.
  */
 export function CompareSlider({
   originalUrl,

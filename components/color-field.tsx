@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 
 type ColorFieldProps = {
   label: string;
+  description?: string;
   value: string;
   onChange: (css: string) => void;
   className?: string;
@@ -29,6 +30,7 @@ type ColorFieldProps = {
  */
 export function ColorField({
   label,
+  description,
   value,
   onChange,
   className,
@@ -96,6 +98,9 @@ export function ColorField({
           onBlur={() => setDraft(null)}
         />
       </div>
+      {description && (
+        <p className="text-muted-foreground text-xs">{description}</p>
+      )}
     </div>
   );
 }

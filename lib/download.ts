@@ -19,7 +19,7 @@ export type ZipEntry = {
  * so the compressor never rides in the main bundle. A single ZIP also avoids
  * the browser blocking N back-to-back anchor downloads on large batches.
  *
- * Entries arrive pre-named (extension included) — colliding names get a
+ * Entries arrive pre-named, extension included. Colliding names get a
  * numeric suffix before the extension. Binary entries that are already
  * compressed (PNG, WebP, AVIF) are stored rather than deflated again.
  */

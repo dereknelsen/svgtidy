@@ -21,7 +21,7 @@ export function useSvgObjectUrl(svg: string | null | undefined) {
       return;
     }
     // Optimized output may legally lack xmlns (the removeXMLNS setting), but
-    // a browser won't render a namespace-less SVG document — reinstate it for
+    // a browser won't render a namespace-less SVG document, so reinstate it for
     // the preview only; downloads and copies keep the real output.
     const next = URL.createObjectURL(
       new Blob([ensureSvgXmlns(svg)], { type: "image/svg+xml" }),

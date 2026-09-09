@@ -4,7 +4,8 @@ import { optimizeSvg, prettifySvg } from "./core";
 
 /**
  * The core value proposition, tested through its real interface: this SVG +
- * these settings → this output. Real SVGO, in-process, no worker, no mocks.
+ * these settings → this output. It runs real SVGO in-process without a
+ * worker or any mocks.
  */
 
 const FIXTURE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -76,7 +77,7 @@ describe("optimizeSvg", () => {
   });
 
   // Every preset must survive a real SVGO run. A settings row mapped to a
-  // nonexistent plugin name only blows up here, at optimize time — the config
+  // nonexistent plugin name only blows up here, at optimize time. The config
   // builder happily emits it (this is how the Aggressive preset once broke).
   it.each(BUILT_IN_PRESETS)(
     "the $id preset optimizes without error",

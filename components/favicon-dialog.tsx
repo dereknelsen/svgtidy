@@ -93,7 +93,7 @@ export function FaviconDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-min sm:min-w-2xl">
         <DialogHeader>
           <DialogTitle>Generate favicons</DialogTitle>
           <DialogDescription>
@@ -128,11 +128,13 @@ export function FaviconDialog({
               <ColorField
                 label="Theme color"
                 value={options.themeColor}
+                description="The manifest theme color and Windows tile color."
                 onChange={(css) => set("themeColor", css)}
               />
               <ColorField
                 label="Icon background"
                 value={options.backgroundColor}
+                description="Background color for iOS, Windows, and Android icons."
                 onChange={(css) => set("backgroundColor", css)}
               />
             </div>

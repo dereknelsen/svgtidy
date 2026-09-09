@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 // SVGO runs here, off the main thread, so batches of files never freeze the UI.
-// All actual optimization logic lives in lib/optimize/core.ts — this file only
+// All actual optimization logic lives in lib/optimize/core.ts. This file only
 // speaks the wire protocol.
 import { optimizeSvg, prettifySvg } from "../lib/optimize/core";
 import type {

@@ -23,7 +23,7 @@ const rerunning: OptimizeResult = { ...done, status: "running" };
 
 const failed: OptimizeResult = { status: "error", error: "bad svg" };
 
-describe("outputOf — the single which-bytes rule", () => {
+describe("outputOf: the single which-bytes rule", () => {
   it("returns the original before any result exists", () => {
     expect(outputOf(svg, undefined)).toBe(svg.svg);
   });
@@ -33,7 +33,7 @@ describe("outputOf — the single which-bytes rule", () => {
   });
 
   it("returns stale optimized output while a re-run is in flight", () => {
-    // This is what the canvas shows — downloads and copies must match it.
+    // This is what the canvas shows, and downloads and copies must match it.
     expect(outputOf(svg, rerunning)).toBe(done.data);
   });
 

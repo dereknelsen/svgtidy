@@ -62,7 +62,7 @@ function useSvgOnDrop(onFiles: (files: IncomingSvg[]) => void) {
 }
 
 /**
- * Make any region a passive SVG dropzone (no click/keyboard affordance) —
+ * Make any region a passive SVG dropzone (no click/keyboard affordance):
  * spread `getRootProps()` on the region and overlay something on
  * `isDragActive`. The canvas uses this so drops work anywhere.
  */
@@ -80,7 +80,7 @@ export function useSvgDrop(onFiles: (files: IncomingSvg[]) => void) {
 }
 
 /**
- * A small [+] icon button that opens the file picker — for spots where the
+ * A small [+] icon button that opens the file picker, for spots where the
  * drag-anywhere affordance isn't discoverable. The tooltip teaches it.
  */
 export function AddFilesButton({
@@ -106,8 +106,8 @@ export function AddFilesButton({
         <TooltipTrigger
           render={
             <Button
-              variant="secondary"
-              size="icon-sm"
+              variant="default"
+              size="icon"
               onClick={open}
               aria-label="Add SVG files"
             >
@@ -116,7 +116,7 @@ export function AddFilesButton({
           }
         />
         <TooltipContent>
-          Add SVGs — or drag &amp; drop files anywhere
+          Add SVGs, or drag &amp; drop files anywhere
         </TooltipContent>
       </Tooltip>
     </>

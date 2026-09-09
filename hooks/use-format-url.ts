@@ -51,11 +51,11 @@ const urlKeys = Object.fromEntries(
 ) as Record<keyof FormatSettings, string>;
 
 /**
- * Format settings live in the URL exactly like optimization settings — same
+ * Format settings live in the URL exactly like optimization settings: the same
  * share-by-copying-the-address model, disjoint param names. On top of that,
  * the last-used values are snapshotted to localStorage so a fresh visit picks
  * up where the user left off. Precedence: any format param in the URL wins
- * entirely (a shared link must reproduce exactly — absent keys mean defaults,
+ * entirely (a shared link must reproduce exactly, so absent keys mean defaults,
  * not last-used); only a URL with zero format params hydrates from the
  * snapshot.
  */

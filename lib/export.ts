@@ -14,9 +14,9 @@ export type DataUriOptions = {
 
 /**
  * Characters a CSS url() cannot carry raw even inside quotes, plus the ones
- * that break unquoted url() and HTML attributes: `#` (starts a URL fragment —
- * every hex color), `%` (the escape itself), angle brackets, parens, braces,
- * and line breaks. Everything else — spaces, `=`, `:`, `/`, `,`, `;` — stays
+ * that break unquoted url() and HTML attributes: `#` (starts a URL fragment,
+ * so every hex color), `%` (the escape itself), angle brackets, parens, braces,
+ * and line breaks. Everything else (spaces, `=`, `:`, `/`, `,`, `;`) stays
  * readable, which is what keeps this encoding smaller than base64.
  */
 const UNSAFE = /[\r\n%#()<>?[\\\]^`{|}]/g;
@@ -96,7 +96,7 @@ const JSX_ATTR_EXCEPTIONS: Record<string, string> = {
  * namespaced attributes become camelCase, class becomes className, and
  * style="a:b" becomes style={{ a: "b" }}.
  *
- * This is a lexical pass over `attr="value"` pairs, not a real XML transform —
+ * This is a lexical pass over `attr="value"` pairs, not a real XML transform, so
  * a value that itself contains ` x="` would confuse it. Optimized SVGO output
  * doesn't produce that.
  */

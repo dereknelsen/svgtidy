@@ -3,7 +3,7 @@ import { savingsPercent } from "../format";
 /**
  * The result model: what the app knows about one file's optimization right
  * now. Consumers ask questions through the functions below instead of reading
- * raw fields, so the answers — especially "which bytes represent this file?" —
+ * raw fields, so the answers (especially "which bytes represent this file?")
  * are decided in exactly one place.
  *
  * The stale-while-revalidate rule: while a re-optimize runs, prior output is
@@ -30,7 +30,7 @@ export function optimizedOf(result: OptimizeResult | undefined): string | null {
 }
 
 /**
- * The single rule for which bytes represent a file right now — what the
+ * The single rule for which bytes represent a file right now: what the
  * canvas shows and what download/copy/export produce.
  */
 export function outputOf(
@@ -56,7 +56,7 @@ export function savingsOf(
   return optimized != null ? savingsPercent(svg.size, optimized) : null;
 }
 
-/** True while a re-optimize is in flight — displayed values are stale. */
+/** True while a re-optimize is in flight. Displayed values are stale. */
 export function isStale(result: OptimizeResult | undefined): boolean {
   return result?.status === "running";
 }

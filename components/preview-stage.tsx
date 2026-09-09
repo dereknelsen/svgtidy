@@ -93,7 +93,7 @@ export function PreviewStage({
   const dragFrom = useRef<{ x: number; y: number } | null>(null);
 
   // Refs mirror the latest values so the native wheel listener (which must be
-  // non-passive — React's root wheel handler can't preventDefault) stays
+  // non-passive, since React's root wheel handler can't preventDefault) stays
   // attached once.
   const viewRef = useRef(view);
   const onViewChangeRef = useRef(onViewChange);
@@ -107,7 +107,7 @@ export function PreviewStage({
     if (!el) return;
     const onWheel = (event: WheelEvent) => {
       // ctrlKey also covers trackpad pinch, which browsers report as
-      // ctrl+wheel — exactly the gesture users expect to zoom.
+      // ctrl+wheel, exactly the gesture users expect to zoom.
       if (!event.metaKey && !event.ctrlKey) return;
       event.preventDefault();
       const { zoom, pan } = viewRef.current;

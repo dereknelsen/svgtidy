@@ -39,7 +39,7 @@ export function PlainCode({
 
 /**
  * Chrome warns that Monaco's internal textareas (IME buffer, hidden input)
- * lack an id/name, and Monaco exposes no option for them — so name them
+ * lack an id/name, and Monaco exposes no option for them, so name them
  * after the editor mounts.
  */
 function nameMonacoInputs(container: HTMLElement | null) {

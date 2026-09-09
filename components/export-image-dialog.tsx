@@ -63,6 +63,7 @@ export function ExportImageDialog({
   const [scale, setScale] = useState<number>(1);
   const [widthText, setWidthText] = useState<string | null>(null);
   const [quality, setQuality] = useState(DEFAULT_QUALITY);
+  const [padding, setPadding] = useState(0);
   const [opaque, setOpaque] = useState(false);
   const [background, setBackground] = useState("#ffffff");
 
@@ -93,9 +94,10 @@ export function ExportImageDialog({
       width,
       height,
       quality,
+      padding,
       background: opaque ? background : undefined,
     }),
-    [format, width, height, quality, opaque, background],
+    [format, width, height, quality, padding, opaque, background],
   );
 
   const preview = usePreview(open ? current : null, options);
@@ -146,7 +148,7 @@ export function ExportImageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="overflow-x-clip overflow-y-auto sm:max-w-min sm:min-w-2xl">
         <DialogHeader>
           <DialogTitle>Export as image</DialogTitle>
           <DialogDescription>
@@ -251,6 +253,26 @@ export function ExportImageDialog({
                 />
               </div>
             )}
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label id="export-padding-label">Padding</Label>
+                <span className="text-muted-foreground font-mono text-xs">
+                  {Math.round(padding * 100)}%
+                </span>
+              </div>
+              <Slider
+                aria-labelledby="export-padding-label"
+                min={0}
+                max={30}
+                step={1}
+                value={[Math.round(padding * 100)]}
+                onValueChange={(value) => {
+                  const next = Array.isArray(value) ? value[0] : value;
+                  setPadding(next / 100);
+                }}
+              />
+            </div>
 
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">

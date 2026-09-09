@@ -32,7 +32,7 @@ describe("extractPalette", () => {
   });
 });
 
-describe("formatPreviewSvg — size", () => {
+describe("formatPreviewSvg: size", () => {
   it("leaves markup untouched in auto mode", () => {
     const out = formatPreviewSvg(
       MONO,
@@ -79,7 +79,7 @@ describe("formatPreviewSvg — size", () => {
   });
 });
 
-describe("formatPreviewSvg — color", () => {
+describe("formatPreviewSvg: color", () => {
   it("recolors monochrome files with the base color", () => {
     const out = formatPreviewSvg(MONO, DEFAULT_FORMAT, ctx);
     expect(out).toContain('fill="currentColor"');
@@ -125,7 +125,7 @@ describe("formatPreviewSvg — color", () => {
   });
 });
 
-describe("formatPreviewSvg — empty rect", () => {
+describe("formatPreviewSvg: empty rect", () => {
   const f = { ...DEFAULT_FORMAT, color: "", includeEmptyRect: true };
 
   it("inserts a viewBox-sized invisible rect as the first child", () => {
@@ -167,7 +167,7 @@ describe("highlightPartSvg", () => {
   });
 });
 
-describe("formatOutput — file types", () => {
+describe("formatOutput: file types", () => {
   it("svg: passthrough with .svg filename and svg mime", () => {
     const out = formatOutput(MONO, { ...DEFAULT_FORMAT, color: "" }, ctx);
     expect(out).toEqual({
@@ -209,7 +209,7 @@ describe("formatOutput — file types", () => {
   });
 });
 
-describe("formatOutput — css", () => {
+describe("formatOutput: css", () => {
   const css = { ...DEFAULT_FORMAT, color: "", fileType: "css" as const };
   const URL = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231a1a1a' d='M0 0h24v24z'/%3E%3C/svg%3E")`;
 

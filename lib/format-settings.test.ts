@@ -34,7 +34,7 @@ describe("parseFormatSettings", () => {
   });
 
   // Presets store one flat object holding optimize + format keys. Each parser
-  // must pick out its own keys and strip the other model's — this test is the
+  // must pick out its own keys and strip the other model's. This test is the
   // load-bearing assumption behind combined presets.
   it("round-trips a flat combined settings object through both parsers", () => {
     const combined = {
