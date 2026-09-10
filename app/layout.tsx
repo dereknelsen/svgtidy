@@ -83,8 +83,8 @@ export default function RootLayout({
         </ThemeProvider>
 
         {/* Umami analytics */}
-        {process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL && process.env.NEXT_PUBLIC_GUESTBOOK_DOMAIN && process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
-          <Script src={process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL} data-do-not-track="true" data-exclude-search="true" data-domains={process.env.NEXT_PUBLIC_GUESTBOOK_DOMAIN} data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID} strategy="afterInteractive" />
+        {process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL && process.env.NEXT_PUBLIC_GUESTBOOK_DOMAINS && process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
+          <Script src={process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL} data-do-not-track="true" data-exclude-search="true" data-domains={process.env.NEXT_PUBLIC_GUESTBOOK_DOMAINS} data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID} strategy="afterInteractive" />
         )}
       </body>
     </html>
