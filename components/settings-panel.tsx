@@ -18,10 +18,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { OverrideMark } from "@/components/override-mark";
 import {
-  DEFAULT_SETTINGS,
   SETTING_DESCRIPTORS,
   SETTINGS_GROUPS,
+  type SettingKey,
   type Settings,
   type ToggleMeta,
 } from "@/lib/settings";
@@ -31,15 +32,23 @@ const precision = SETTING_DESCRIPTORS.floatPrecision;
 type SettingsPanelProps = {
   settings: Settings;
   onChange: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  /** Keys to dot: changed from default (workspace) or pinned here (override). */
+  marked: { has: (key: SettingKey) => boolean };
+  /** Unpin keys so they inherit again; absent in workspace scope. */
+  onClear?: ((keys: readonly SettingKey[]) => void) | null;
 };
 
 function ToggleRow({
   toggle,
   checked,
+  marked,
+  onClear,
   onChange,
 }: {
   toggle: ToggleMeta;
   checked: boolean;
+  marked: boolean;
+  onClear?: (() => void) | null;
   onChange: (checked: boolean) => void;
 }) {
   const id = `set-${toggle.key}`;
@@ -51,6 +60,11 @@ function ToggleRow({
           className="inline items-center gap-1.5 text-sm leading-none font-medium"
         >
           {toggle.label}
+          <OverrideMark
+            marked={marked}
+            onClear={onClear}
+            label={toggle.label}
+          />
           {toggle.risky && (
             <Tooltip>
               <TooltipTrigger
@@ -76,7 +90,13 @@ function ToggleRow({
   );
 }
 
-export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
+export function SettingsPanel({
+  settings,
+  onChange,
+  marked,
+  onClear,
+}: SettingsPanelProps) {
+  const clearFor = (key: SettingKey) => (onClear ? () => onClear([key]) : null);
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
 
@@ -99,12 +119,10 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
       Object.fromEntries(
         SETTINGS_GROUPS.map((group) => [
           group.id,
-          group.toggles.filter(
-            (t) => settings[t.key] !== DEFAULT_SETTINGS[t.key],
-          ).length,
+          group.toggles.filter((t) => marked.has(t.key)).length,
         ]),
       ),
-    [settings],
+    [marked],
   );
 
   const precisionVisible =
@@ -136,6 +154,11 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                   inside the primitive, which wires aria-labelledby to it. */}
               <span id="precision-label" className="text-sm font-medium">
                 {precision.label}
+                <OverrideMark
+                  marked={marked.has("floatPrecision")}
+                  onClear={clearFor("floatPrecision")}
+                  label={precision.label}
+                />
               </span>
               <span className="text-success font-mono text-sm tabular-nums">
                 {settings.floatPrecision}
@@ -166,6 +189,8 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                   key={toggle.key}
                   toggle={toggle}
                   checked={settings[toggle.key]}
+                  marked={marked.has(toggle.key)}
+                  onClear={clearFor(toggle.key)}
                   onChange={(checked) => onChange(toggle.key, checked)}
                 />
               ))}
@@ -206,6 +231,8 @@ export function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
                           key={toggle.key}
                           toggle={toggle}
                           checked={settings[toggle.key]}
+                          marked={marked.has(toggle.key)}
+                          onClear={clearFor(toggle.key)}
                           onChange={(checked) => onChange(toggle.key, checked)}
                         />
                       ))}

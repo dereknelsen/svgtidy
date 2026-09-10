@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { copyText, downloadFile } from "@/lib/download";
+import { umamiEvent } from "@/lib/analytics";
 import { FILE_TYPE_OPTIONS, type FileType } from "@/lib/format-settings";
 import type { FormattedFile } from "@/lib/format-output";
 import { RASTER_FORMATS, type RasterFormat } from "@/lib/raster";
@@ -97,6 +98,7 @@ export function HeaderActions({
               size="sm"
               disabled={!formatted}
               onClick={() => formatted && copy(formatted.content, typeLabel)}
+              {...umamiEvent("copy-output", { type: fileType })}
             >
               {copied ? <CheckIcon className="text-success" /> : <CopyIcon />}
               <span className="hidden lg:inline-flex">Copy</span>
@@ -120,6 +122,7 @@ export function HeaderActions({
                   formatted.mime,
                 )
               }
+              {...umamiEvent("download-file", { type: fileType })}
             >
               <DownloadIcon />
               <span className="hidden lg:inline-flex">Download</span>
@@ -181,6 +184,7 @@ export function HeaderActions({
           <DropdownMenuItem
             disabled={!dataUri}
             onClick={() => dataUri && copy(dataUri, "data URI")}
+            {...umamiEvent("copy-data-uri")}
           >
             Copy data URI
           </DropdownMenuItem>
@@ -189,6 +193,7 @@ export function HeaderActions({
             <DropdownMenuItem
               disabled={!css}
               onClick={() => css && copy(css, "CSS")}
+              {...umamiEvent("copy-css")}
             >
               Copy as CSS
             </DropdownMenuItem>

@@ -46,9 +46,11 @@ import {
   type CssQuotes,
   type CssSnippet,
   type DataUriEncoding,
+  type FormatKey,
   type FormatSettings,
   type SizeMode,
 } from "@/lib/format-settings";
+import { OverrideMark } from "@/components/override-mark";
 import { extractPalette } from "@/lib/format-output";
 import { readLocal, writeLocal } from "@/lib/local-storage";
 import type { SvgDocType } from "@/lib/db";
@@ -65,6 +67,10 @@ type FormatPanelProps = {
     key: K,
     value: FormatSettings[K],
   ) => void;
+  /** Keys to dot: changed from default (workspace) or pinned here (override). */
+  marked: { has: (key: FormatKey) => boolean };
+  /** Unpin keys so they inherit again; absent in workspace scope. */
+  onClear?: ((keys: readonly FormatKey[]) => void) | null;
   onRename: (id: string, name: string) => void;
   /** Opens the series rename dialog for the file's folder; null when loose. */
   onSeriesRename: (() => void) | null;
@@ -216,12 +222,14 @@ function SwitchRow({
   label,
   description,
   checked,
+  mark,
   onChange,
 }: {
   id: string;
   label: string;
   description: string;
   checked: boolean;
+  mark?: React.ReactNode;
   onChange: (checked: boolean) => void;
 }) {
   return (
@@ -229,6 +237,7 @@ function SwitchRow({
       <div className="flex min-w-0 flex-col">
         <label htmlFor={id} className="text-sm leading-none font-medium">
           {label}
+          {mark}
         </label>
         <span className="text-muted-foreground mt-1 text-xs leading-snug">
           {description}
@@ -249,11 +258,21 @@ export function FormatPanel({
   optimizedSvg,
   format,
   onFormatChange,
+  marked,
+  onClear,
   onRename,
   onSeriesRename,
   onPartColorsChange,
   onPartHover,
 }: FormatPanelProps) {
+  /** The dot (and undo) for a control that edits one or more keys. */
+  const mark = (keys: FormatKey[], label: string) => (
+    <OverrideMark
+      marked={keys.some((k) => marked.has(k))}
+      onClear={onClear ? () => onClear(keys) : null}
+      label={label}
+    />
+  );
   const palette = useMemo(
     () => (optimizedSvg ? extractPalette(optimizedSvg) : []),
     [optimizedSvg],
@@ -339,6 +358,7 @@ export function FormatPanel({
       <div className="flex flex-col gap-1.5">
         <label className="text-sm leading-none font-medium">
           {FORMAT_DESCRIPTORS.fileType.label}
+          {mark(["fileType"], FORMAT_DESCRIPTORS.fileType.label)}
         </label>
         <Select
           items={FILE_TYPE_OPTIONS}
@@ -368,6 +388,7 @@ export function FormatPanel({
           <div className="flex flex-col gap-1.5">
             <label className="text-sm leading-none font-medium">
               {FORMAT_DESCRIPTORS.cssSnippet.label}
+              {mark(["cssSnippet"], FORMAT_DESCRIPTORS.cssSnippet.label)}
             </label>
             <Select
               items={CSS_SNIPPET_OPTIONS}
@@ -395,6 +416,10 @@ export function FormatPanel({
           <div className="flex flex-col gap-1.5">
             <label className="text-sm leading-none font-medium">
               {FORMAT_DESCRIPTORS.cssEncoding.label}
+              {mark(
+                ["cssEncoding", "cssQuotes"],
+                FORMAT_DESCRIPTORS.cssEncoding.label,
+              )}
             </label>
             <div className="flex items-center gap-1.5">
               <ToggleGroup
@@ -458,6 +483,7 @@ export function FormatPanel({
       <div className="flex flex-col gap-1.5">
         <label className="text-sm leading-none font-medium">
           {FORMAT_DESCRIPTORS.sizeMode.label}
+          {mark(["sizeMode", "sizeValue"], FORMAT_DESCRIPTORS.sizeMode.label)}
         </label>
         <div className="flex items-center gap-1.5">
           <Combobox
@@ -515,6 +541,7 @@ export function FormatPanel({
           className="text-sm leading-none font-medium"
         >
           {FORMAT_DESCRIPTORS.color.label}
+          {mark(["color"], FORMAT_DESCRIPTORS.color.label)}
         </label>
         <div className="flex items-center gap-1.5">
           <Input
@@ -607,6 +634,10 @@ export function FormatPanel({
         label={FORMAT_DESCRIPTORS.includeEmptyRect.label}
         description={FORMAT_DESCRIPTORS.includeEmptyRect.description}
         checked={format.includeEmptyRect}
+        mark={mark(
+          ["includeEmptyRect"],
+          FORMAT_DESCRIPTORS.includeEmptyRect.label,
+        )}
         onChange={(checked) => onFormatChange("includeEmptyRect", checked)}
       />
     </div>

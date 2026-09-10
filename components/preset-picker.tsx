@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { BookmarkPlusIcon, Share2Icon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { track, umamiEvent } from "@/lib/analytics";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -34,7 +35,6 @@ import {
   parseFormatSettings,
   type FormatSettings,
 } from "@/lib/format-settings";
-import { Label } from "@/components/ui/label";
 import type { PresetDocType } from "@/lib/db";
 
 /**
@@ -66,6 +66,8 @@ type PresetPickerProps = {
     settings: Settings & FormatSettings,
   ) => void | Promise<void>;
   onRemove: (id: string) => void | Promise<void>;
+  /** Tooltip for the share button; the link always carries the workspace base. */
+  shareHint?: string;
 };
 
 /**
@@ -80,6 +82,7 @@ export function PresetPicker({
   savedPresets,
   onSave,
   onRemove,
+  shareHint = "Copy share link",
 }: PresetPickerProps) {
   const [saveOpen, setSaveOpen] = useState(false);
   const [name, setName] = useState("");
@@ -110,6 +113,7 @@ export function PresetPicker({
   function handleChange(value: unknown) {
     if (typeof value !== "string") return;
     const builtIn = BUILT_IN_PRESETS.find((p) => p.id === value);
+    track("preset-apply", { preset: builtIn ? builtIn.id : "saved" });
     if (builtIn) {
       // Built-ins predate format settings, so applying one resets format too.
       onApply({ ...DEFAULT_FORMAT, ...builtIn.settings });
@@ -134,6 +138,7 @@ export function PresetPicker({
     const trimmed = name.trim();
     if (!trimmed) return;
     await onSave(trimmed, { ...settings, ...format });
+    track("preset-save");
     setName("");
     setSaveOpen(false);
     toast.success(`Saved preset "${trimmed}"`);
@@ -188,6 +193,7 @@ export function PresetPicker({
                 aria-label={`Delete preset ${activeSaved.name}`}
                 className="text-muted-foreground hover:text-destructive"
                 onClick={() => void onRemove(activeSaved.id)}
+                {...umamiEvent("preset-delete")}
               >
                 <Trash2Icon />
               </Button>
@@ -219,12 +225,13 @@ export function PresetPicker({
               size="icon-sm"
               aria-label="Copy a share link for these settings"
               onClick={copyShareLink}
+              {...umamiEvent("copy-share-link")}
             >
               <Share2Icon />
             </Button>
           }
         />
-        <TooltipContent>Copy share link</TooltipContent>
+        <TooltipContent>{shareHint}</TooltipContent>
       </Tooltip>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>

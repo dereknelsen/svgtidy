@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { track, umamiEvent } from "@/lib/analytics";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -61,6 +62,7 @@ import {
   ZoomOutIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
 
 type TopMode = "preview" | "compare";
 type BottomMode = "diff" | "code";
@@ -134,6 +136,7 @@ function CopyFormattedButton({ content }: { content: string }) {
         if (ok) setCopied(true);
         else toast.error("Couldn't copy to clipboard");
       }}
+      {...umamiEvent("copy-code")}
     >
       {copied ? <CheckIcon className="text-success" /> : <CopyIcon />}
       {copied ? "Copied" : "Copy"}
@@ -153,7 +156,7 @@ function ToolToggles({
   const zoomInverted = useAltHeld() && tool === "zoom";
   return (
     <ToggleGroup
-      size="sm"
+      size="icon-sm"
       value={tool ? [tool] : []}
       onValueChange={(value) => {
         const next = value[0] as StageTool | undefined;
@@ -368,6 +371,7 @@ export function SvgViewer({
                   const next = value[0];
                   if (!next) return;
                   setTopMode(next as TopMode);
+                  track("view-mode", { panel: "top", mode: next });
                   if (topRef.current?.isCollapsed()) topRef.current.expand();
                 }}
               >
@@ -383,6 +387,7 @@ export function SvgViewer({
               previewVisible ? (
                 <>
                   <ToolToggles tool={tool} onToolChange={setTool} />
+                  <Separator orientation="vertical" className="h-5 my-auto mx-2" />
                   <ZoomControls view={view} onViewChange={setView} />
                 </>
               ) : null
@@ -448,6 +453,7 @@ export function SvgViewer({
                   const next = value[0];
                   if (!next) return;
                   setBottomMode(next as BottomMode);
+                  track("view-mode", { panel: "bottom", mode: next });
                   if (bottomRef.current?.isCollapsed())
                     bottomRef.current.expand();
                 }}

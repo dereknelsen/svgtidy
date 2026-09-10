@@ -4,12 +4,6 @@ import { useCallback } from "react";
 import { useDropzone, type FileRejection } from "react-dropzone";
 import { UploadCloudIcon, FileWarningIcon, PlusIcon } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { byteLength } from "@/lib/format";
 
@@ -80,14 +74,11 @@ export function useSvgDrop(onFiles: (files: IncomingSvg[]) => void) {
 }
 
 /**
- * A small [+] icon button that opens the file picker, for spots where the
- * drag-anywhere affordance isn't discoverable. The tooltip teaches it.
+ * A picker-only dropzone: `open` launches the OS file dialog and the hidden
+ * input must be rendered somewhere. For spots where the drag-anywhere
+ * affordance isn't discoverable (the sidebar's [+] menu).
  */
-export function AddFilesButton({
-  onFiles,
-}: {
-  onFiles: (files: IncomingSvg[]) => void;
-}) {
+export function useSvgFilePicker(onFiles: (files: IncomingSvg[]) => void) {
   const onDrop = useSvgOnDrop(onFiles);
   const { getInputProps, open } = useDropzone({
     onDrop,
@@ -98,29 +89,7 @@ export function AddFilesButton({
     noKeyboard: true,
     noDrag: true,
   });
-
-  return (
-    <>
-      <input {...getInputProps()} />
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              variant="default"
-              size="icon"
-              onClick={open}
-              aria-label="Add SVG files"
-            >
-              <PlusIcon />
-            </Button>
-          }
-        />
-        <TooltipContent>
-          Add SVGs, or drag &amp; drop files anywhere
-        </TooltipContent>
-      </Tooltip>
-    </>
-  );
+  return { open, inputProps: getInputProps() };
 }
 
 export function Dropzone({

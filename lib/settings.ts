@@ -481,7 +481,8 @@ export const SETTINGS_GROUPS: SettingsGroup[] = SETTINGS_GROUP_META.map(
   }),
 );
 
-const SettingsSchema = v.object(
+// Kept as a raw object schema so `v.partial` can derive the override parser.
+const SettingsObjectSchema = v.object(
   Object.fromEntries(
     SETTING_KEYS.map((key) => {
       const control = SETTING_DESCRIPTORS[key].control;
@@ -498,7 +499,10 @@ const SettingsSchema = v.object(
       ];
     }),
   ),
-) as unknown as v.GenericSchema<Settings>;
+);
+const SettingsSchema =
+  SettingsObjectSchema as unknown as v.GenericSchema<Settings>;
+const SettingsOverrideSchema = v.partial(SettingsObjectSchema);
 
 /**
  * Named presets. These are the "better defaults" that ship with the app so
@@ -620,4 +624,15 @@ export function parseSettings(input: unknown): Settings {
     ...(typeof input === "object" && input !== null ? input : {}),
   });
   return result.success ? result.output : { ...DEFAULT_SETTINGS };
+}
+
+/**
+ * Coerce unknown data into a partial Settings: the optimization half of an
+ * override. Foreign keys (format keys included) are stripped; any invalid
+ * value rejects the whole input, mirroring `parseSettings`.
+ */
+export function parseSettingsOverride(input: unknown): Partial<Settings> {
+  if (typeof input !== "object" || input === null) return {};
+  const result = v.safeParse(SettingsOverrideSchema, input);
+  return result.success ? (result.output as Partial<Settings>) : {};
 }

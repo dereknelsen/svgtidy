@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FolderArchiveIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 import {
   Dialog,
   DialogContent,
@@ -81,6 +82,7 @@ export function FaviconDialog({
         },
       );
       await downloadZip(entries, `${stemOf(source.name)}-favicons.zip`);
+      track("export-favicons", { files: entries.length });
       toast.success(`Downloading ${entries.length} favicon files as a ZIP`);
     } catch (err) {
       toast.error(

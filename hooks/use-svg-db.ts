@@ -8,6 +8,13 @@ import type {
   SvgDocType,
 } from "@/lib/db";
 import type { Settings } from "@/lib/settings";
+import {
+  clearOverrideKeys,
+  setOverrideKeys,
+  type OverrideKey,
+  type OverrideTarget,
+  type SettingsOverride,
+} from "@/lib/effective-settings";
 
 /**
  * Resolve the shared database once, exposing a loading flag for the UI.
@@ -65,15 +72,17 @@ function useCollectionArray<T extends { id: string; createdAt: number }>(
         .map((d) => d.toJSON() as T)
         .sort((a, b) => b.createdAt - a.createdAt);
       // RxDB emits fresh objects on every change anywhere in the collection.
-      // Mutations here are insert/remove, renames, folder moves, and part
-      // color edits, so the identity guard checks id, name, folderId, and
-      // partColors (tiny maps, so stringify is cheap). An unchanged sequence
-      // keeps the previous array so downstream effects don't re-fire.
+      // Mutations here are insert/remove, renames, folder moves, part color
+      // edits, and override edits, so the identity guard checks id, name,
+      // folderId, partColors, and override (small maps, so stringify is
+      // cheap). An unchanged sequence keeps the previous array so downstream
+      // effects don't re-fire.
       type Row = {
         id: string;
         name?: string;
         folderId?: string;
         partColors?: Record<string, string>;
+        override?: SettingsOverride;
       };
       setRows((prev) =>
         prev.length === next.length &&
@@ -84,7 +93,8 @@ function useCollectionArray<T extends { id: string; createdAt: number }>(
             a.id === b.id &&
             a.name === b.name &&
             a.folderId === b.folderId &&
-            JSON.stringify(a.partColors) === JSON.stringify(b.partColors)
+            JSON.stringify(a.partColors) === JSON.stringify(b.partColors) &&
+            JSON.stringify(a.override) === JSON.stringify(b.override)
           );
         })
           ? prev
@@ -153,6 +163,37 @@ export function useSvgActions(db: AppDatabase | null) {
     [db],
   );
 
+  /** Bulk delete, one write. */
+  const removeSvgs = useCallback(
+    async (ids: string[]) => {
+      if (!db || ids.length === 0) return;
+      await db.svgs.bulkRemove(ids);
+    },
+    [db],
+  );
+
+  /**
+   * Move files into a folder, or out to loose when `folderId` is null. A
+   * loose file has no folderId key at all (the schema treats absence as
+   * loose), which is why this deletes the key instead of patching undefined.
+   * Each file keeps its own override; only the folder layer beneath changes.
+   */
+  const moveSvgs = useCallback(
+    async (ids: string[], folderId: string | null) => {
+      if (!db || ids.length === 0) return;
+      const docs = await db.svgs.findByIds(ids).exec();
+      for (const doc of docs.values()) {
+        await doc.incrementalModify((d) => {
+          if (folderId) return { ...d, folderId };
+          const { folderId: _drop, ...rest } = d;
+          void _drop;
+          return rest;
+        });
+      }
+    },
+    [db],
+  );
+
   const clearSvgs = useCallback(async () => {
     if (!db) return;
     await db.svgs.find().remove();
@@ -173,6 +214,13 @@ export function useSvgActions(db: AppDatabase | null) {
       });
     },
     [db],
+  );
+
+  const duplicateSvgs = useCallback(
+    async (ids: string[]) => {
+      for (const id of ids) await duplicateSvg(id);
+    },
+    [duplicateSvg],
   );
 
   const renameSvg = useCallback(
@@ -204,6 +252,59 @@ export function useSvgActions(db: AppDatabase | null) {
       await doc?.patch({ partColors });
     },
     [db],
+  );
+
+  /* ------------------------- settings overrides ------------------------- */
+
+  // One code path for files and folders. incrementalModify serializes rapid
+  // edits (slider drags) on the document instead of racing on revisions.
+  const modifyOverride = useCallback(
+    async (
+      targets: OverrideTarget[],
+      update: (
+        current: SettingsOverride | undefined,
+      ) => SettingsOverride | undefined,
+    ) => {
+      if (!db) return;
+      const apply = <T extends { override?: SettingsOverride }>(d: T): T => {
+        const next = update(d.override);
+        if (next) return { ...d, override: next };
+        const { override: _drop, ...rest } = d;
+        void _drop;
+        return rest as T;
+      };
+      for (const target of targets) {
+        if (target.kind === "file") {
+          const doc = await db.svgs.findOne(target.id).exec();
+          await doc?.incrementalModify(apply);
+        } else {
+          const doc = await db.folders.findOne(target.id).exec();
+          await doc?.incrementalModify(apply);
+        }
+      }
+    },
+    [db],
+  );
+
+  /** Pin `patch`'s keys on each target, keeping its other pins. */
+  const patchOverride = useCallback(
+    (targets: OverrideTarget[], patch: SettingsOverride) =>
+      modifyOverride(targets, (current) => setOverrideKeys(current, patch)),
+    [modifyOverride],
+  );
+
+  /** Unpin `keys` (or everything) on each target. */
+  const clearOverride = useCallback(
+    (targets: OverrideTarget[], keys?: readonly OverrideKey[]) =>
+      modifyOverride(targets, (current) => clearOverrideKeys(current, keys)),
+    [modifyOverride],
+  );
+
+  /** Replace each target's override wholesale (preset-apply, paste). */
+  const replaceOverride = useCallback(
+    (targets: OverrideTarget[], override: SettingsOverride | undefined) =>
+      modifyOverride(targets, () => override),
+    [modifyOverride],
   );
 
   const addFolder = useCallback(
@@ -288,11 +389,17 @@ export function useSvgActions(db: AppDatabase | null) {
   return {
     addSvgs,
     removeSvg,
+    removeSvgs,
+    moveSvgs,
     clearSvgs,
     duplicateSvg,
+    duplicateSvgs,
     renameSvg,
     renameSvgs,
     setPartColors,
+    patchOverride,
+    clearOverride,
+    replaceOverride,
     addFolder,
     renameFolder,
     removeFolder,

@@ -8,6 +8,7 @@ import {
   SETTING_KEYS,
   SETTINGS_GROUP_META,
   type Settings,
+  parseSettingsOverride,
 } from "./settings";
 
 /**
@@ -249,5 +250,24 @@ describe("SETTING_DESCRIPTORS contracts", () => {
         expect(inPreset, `${key} → ${svgo.plugin}`).not.toContain(svgo.plugin);
       }
     }
+  });
+});
+
+describe("parseSettingsOverride", () => {
+  it("accepts a partial and strips foreign keys", () => {
+    expect(
+      parseSettingsOverride({ removeComments: false, fileType: "jsx", x: 1 }),
+    ).toEqual({ removeComments: false });
+  });
+
+  it("returns an empty override for non-objects", () => {
+    expect(parseSettingsOverride(undefined)).toEqual({});
+    expect(parseSettingsOverride("nope")).toEqual({});
+  });
+
+  it("rejects the whole input on an out-of-range value", () => {
+    expect(
+      parseSettingsOverride({ removeComments: false, floatPrecision: 99 }),
+    ).toEqual({});
   });
 });

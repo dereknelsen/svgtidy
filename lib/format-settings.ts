@@ -188,7 +188,8 @@ export const CSS_ENCODING_OPTIONS: { value: DataUriEncoding; label: string }[] =
 
 export const CSS_QUOTES = ["double", "single"] as const;
 
-const FormatSchema = v.object({
+// Kept as a raw object schema so `v.partial` can derive the override parser.
+const FormatObjectSchema = v.object({
   fileType: v.picklist(FILE_TYPES),
   sizeMode: v.picklist(SIZE_MODES),
   sizeValue: v.pipe(v.number(), v.minValue(0)),
@@ -197,7 +198,9 @@ const FormatSchema = v.object({
   cssSnippet: v.picklist(CSS_SNIPPETS),
   cssEncoding: v.picklist(CSS_ENCODINGS),
   cssQuotes: v.picklist(CSS_QUOTES),
-}) as v.GenericSchema<FormatSettings>;
+});
+const FormatSchema = FormatObjectSchema as v.GenericSchema<FormatSettings>;
+const FormatOverrideSchema = v.partial(FormatObjectSchema);
 
 /** Safely coerce unknown data (from a URL, DB preset, or storage) into valid FormatSettings. */
 export function parseFormatSettings(input: unknown): FormatSettings {
@@ -206,4 +209,15 @@ export function parseFormatSettings(input: unknown): FormatSettings {
     ...(typeof input === "object" && input !== null ? input : {}),
   });
   return result.success ? result.output : { ...DEFAULT_FORMAT };
+}
+
+/**
+ * Coerce unknown data into a partial FormatSettings: the format half of an
+ * override. Foreign keys (optimize keys included) are stripped; any invalid
+ * value rejects the whole input, mirroring `parseFormatSettings`.
+ */
+export function parseFormatOverride(input: unknown): Partial<FormatSettings> {
+  if (typeof input !== "object" || input === null) return {};
+  const result = v.safeParse(FormatOverrideSchema, input);
+  return result.success ? (result.output as Partial<FormatSettings>) : {};
 }

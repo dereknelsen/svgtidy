@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DownloadIcon, FolderArchiveIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 import {
   Dialog,
   DialogContent,
@@ -107,6 +108,7 @@ export function ExportImageDialog({
     try {
       const blob = preview.blob ?? (await renderRaster(current.svg, options));
       downloadBlob(blob, rasterFilename(current.name, format));
+      track("export-image", { format, mode: "single" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Export failed");
     }
@@ -138,6 +140,7 @@ export function ExportImageDialog({
         }),
       );
       await downloadZip(files, `svgtidy-${meta.ext}.zip`);
+      track("export-image", { format, mode: "zip", count: files.length });
       toast.success(`Downloading ${files.length} ${meta.label} files as a ZIP`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Export failed");

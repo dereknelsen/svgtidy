@@ -45,7 +45,8 @@ import {
 } from "@/components/ui/hover-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Dropzone, useSvgDrop, type IncomingSvg } from "@/components/dropzone";
-import { FilesSidebar, type FileActions } from "@/components/files-sidebar";
+import { FilesSidebar } from "@/components/files-sidebar";
+import { FileDialogs } from "@/components/file-dialogs";
 import { FormatPanel } from "@/components/format-panel";
 import { HeaderActions } from "@/components/header-actions";
 import { ExportImageDialog } from "@/components/export-image-dialog";
@@ -68,6 +69,9 @@ import { useFormatUrl } from "@/hooks/use-format-url";
 import { useOptimize } from "@/hooks/use-optimize";
 import { usePasteImport } from "@/hooks/use-paste-import";
 import { useAppHotkeys } from "@/hooks/use-app-hotkeys";
+import { useSelection } from "@/hooks/use-selection";
+import { useSettingsScope, type Scope } from "@/hooks/use-settings-scope";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { downloadFile, downloadZip } from "@/lib/download";
 import {
   buildSprite,
@@ -82,10 +86,26 @@ import { ensureSvgXmlns } from "@/lib/svg";
 import { autoGroupName } from "@/lib/svg";
 import { idPrefix } from "@/lib/settings";
 import type { SvgDocType } from "@/lib/db";
+import type {
+  FileActions,
+  MenuTarget,
+  RenameTarget,
+  SettingsTarget,
+} from "@/lib/file-actions";
+import {
+  overrideCount,
+  resolveAll,
+  snapshotOverride,
+  type Effective,
+  type OverrideTarget,
+} from "@/lib/effective-settings";
+import { sharedFolderOf } from "@/lib/selection";
+import { track, trackDebounced, umamiEvent } from "@/lib/analytics";
 import { batchTotals, outputOf } from "@/lib/optimize";
 import type { RasterFormat } from "@/lib/raster";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Label } from "../components/ui/label";
 
 /**
  * The header lives inside the INNER (inspector) SidebarProvider, so anything
@@ -118,6 +138,7 @@ function FilesTrigger() {
             aria-label="Toggle files"
             className="-ml-1"
             onClick={() => ctx?.toggleSidebar()}
+            {...umamiEvent("toggle-panel", { panel: "files" })}
           >
             <PanelLeftIcon />
           </Button>
@@ -216,6 +237,7 @@ function InspectorTrigger() {
             size="icon-sm"
             aria-label="Toggle inspector"
             onClick={toggleSidebar}
+            {...umamiEvent("toggle-panel", { panel: "inspector" })}
           >
             <PanelRightIcon className="size-4" />
           </Button>
@@ -233,12 +255,16 @@ export default function Page() {
   const presets = usePresets(db);
   const {
     addSvgs,
-    removeSvg,
+    removeSvgs,
+    moveSvgs,
     clearSvgs,
-    duplicateSvg,
+    duplicateSvgs,
     renameSvg,
     renameSvgs,
     setPartColors,
+    patchOverride,
+    clearOverride,
+    replaceOverride,
     addFolder,
     renameFolder,
     removeFolder,
@@ -247,18 +273,56 @@ export default function Page() {
     removePreset,
   } = useSvgActions(db);
 
-  const { settings, setSetting, applyPreset, reset, changedCount } =
-    useSettingsUrl();
+  const { settings, setSetting, applyPreset, reset } = useSettingsUrl();
   const {
     format,
     setFormat,
     applyFormatPreset,
-    changedCount: formatChangedCount,
+    reset: resetFormat,
   } = useFormatUrl();
 
-  const results = useOptimize(svgs, settings);
+  // The workspace base (URL) plus every folder and file override, resolved
+  // once per change. Each file is optimized with its own effective settings.
+  const base = useMemo<Effective>(
+    () => ({ settings, format }),
+    [settings, format],
+  );
+  const effective = useMemo(
+    () => resolveAll(base, folders, svgs),
+    [base, folders, svgs],
+  );
+  const effectiveOf = useCallback(
+    (svg: { id: string }) => effective.files.get(svg.id) ?? base,
+    [effective, base],
+  );
+  const jobs = useMemo(
+    () =>
+      svgs.map((svg) => ({
+        id: svg.id,
+        name: svg.name,
+        svg: svg.svg,
+        settings: effectiveOf(svg).settings,
+      })),
+    [svgs, effectiveOf],
+  );
+  const results = useOptimize(jobs);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const {
+    selection,
+    anchor: selected,
+    fileIds,
+    selectedFiles,
+    select,
+    selectFolder,
+    clearSelection,
+    collapseToAnchor,
+  } = useSelection(svgs, folders);
+  const [rename, setRename] = useState<RenameTarget | null>(null);
+  const [del, setDel] = useState<MenuTarget | null>(null);
+  /** Copy/paste settings between files and folders (effective, both halves). */
+  const [settingsClipboard, setSettingsClipboard] = useState<Effective | null>(
+    null,
+  );
   // The palette slot being hovered/edited in the Format panel, if any.
   const [highlightPart, setHighlightPart] = useState<string | null>(null);
   // Files currently in the series rename dialog; null = closed.
@@ -268,7 +332,11 @@ export default function Page() {
   const filterRef = useRef<HTMLInputElement | null>(null);
 
   const handleAddFiles = useCallback(
-    (files: IncomingSvg[]) => {
+    (
+      files: IncomingSvg[],
+      source: "hero" | "canvas-drop" | "paste" | "picker",
+    ) => {
+      track("add-files", { source, count: files.length });
       void (async () => {
         // Files that arrive together in one gesture become a folder.
         const folderId =
@@ -286,8 +354,26 @@ export default function Page() {
     [addSvgs, addFolder],
   );
 
+  // Each entry point reports where the files came from.
+  const addFromHero = useCallback(
+    (files: IncomingSvg[]) => handleAddFiles(files, "hero"),
+    [handleAddFiles],
+  );
+  const addFromCanvas = useCallback(
+    (files: IncomingSvg[]) => handleAddFiles(files, "canvas-drop"),
+    [handleAddFiles],
+  );
+  const addFromPaste = useCallback(
+    (files: IncomingSvg[]) => handleAddFiles(files, "paste"),
+    [handleAddFiles],
+  );
+  const addFromPicker = useCallback(
+    (files: IncomingSvg[]) => handleAddFiles(files, "picker"),
+    [handleAddFiles],
+  );
+
   // Paste an SVG (file or markup) anywhere on the page to add it.
-  usePasteImport(handleAddFiles);
+  usePasteImport(addFromPaste);
 
   // The canvas is always a dropzone. It accepts drag-and-drop only, with no
   // click or keyboard affordance.
@@ -295,29 +381,73 @@ export default function Page() {
     getRootProps: getCanvasDropProps,
     getInputProps: getCanvasDropInputProps,
     isDragActive: isCanvasDragActive,
-  } = useSvgDrop(handleAddFiles);
+  } = useSvgDrop(addFromCanvas);
 
   const handleRemovePreset = useCallback(
     (id: string) => void removePreset(id),
     [removePreset],
   );
 
-  // A preset snapshot carries both halves; each model applies its own keys.
-  const handleApplyPreset = useCallback(
-    (preset: unknown) => {
-      applyPreset(preset);
-      applyFormatPreset(preset);
-    },
-    [applyPreset, applyFormatPreset],
-  );
-
-  // Selection is derived rather than reconciled in an effect: if the chosen
-  // file was removed (or nothing is chosen yet), fall back to the newest file.
-  const selected = useMemo(
-    () => svgs.find((s) => s.id === selectedId) ?? svgs[0] ?? null,
-    [svgs, selectedId],
-  );
   const selectedResult = selected ? results[selected.id] : undefined;
+  const focusEffective = selected ? effectiveOf(selected) : base;
+  const focusFormat = focusEffective.format;
+
+  // Which layer the inspector edits. Defaults to the selection's natural
+  // scope (folder → Folder, file → File) and resets when the selection
+  // changes; the user can step up to the folder or the workspace.
+  const scopeFolder = useMemo(() => {
+    const id = selection.folderId ?? sharedFolderOf([...fileIds], svgs) ?? null;
+    return id ? (folders.find((f) => f.id === id) ?? null) : null;
+  }, [selection.folderId, fileIds, svgs, folders]);
+  const naturalScope: Scope = selection.folderId
+    ? "folder"
+    : selected
+      ? "file"
+      : "workspace";
+  const scopeKey = selection.folderId
+    ? `folder:${selection.folderId}`
+    : `files:${[...fileIds].join(",")}`;
+  const [scopeChoice, setScopeChoice] = useState<{
+    key: string;
+    scope: Scope;
+  } | null>(null);
+  const availableScopes = useMemo<Scope[]>(
+    () => [
+      "workspace",
+      ...(scopeFolder ? (["folder"] as const) : []),
+      ...(!selection.folderId && selected ? (["file"] as const) : []),
+    ],
+    [scopeFolder, selection.folderId, selected],
+  );
+  const scope: Scope =
+    scopeChoice?.key === scopeKey && availableScopes.includes(scopeChoice.scope)
+      ? scopeChoice.scope
+      : naturalScope;
+  const urlBinding = useMemo(
+    () => ({
+      setSetting,
+      setFormat,
+      resetSettings: reset,
+      resetFormat,
+      applySettingsPreset: applyPreset,
+      applyFormatPreset,
+    }),
+    [setSetting, setFormat, reset, resetFormat, applyPreset, applyFormatPreset],
+  );
+  const dbBinding = useMemo(
+    () => ({ patchOverride, clearOverride, replaceOverride }),
+    [patchOverride, clearOverride, replaceOverride],
+  );
+  const scoped = useSettingsScope({
+    scope,
+    base,
+    effective,
+    focusFile: selected,
+    selectedFiles,
+    folder: scopeFolder,
+    url: urlBinding,
+    db: dbBinding,
+  });
 
   const totals = useMemo(() => batchTotals(svgs, results), [svgs, results]);
 
@@ -337,9 +467,9 @@ export default function Page() {
   const visualSvg = useMemo(
     () =>
       selectedOutput && formatCtx
-        ? formatPreviewSvg(selectedOutput, format, formatCtx)
+        ? formatPreviewSvg(selectedOutput, focusFormat, formatCtx)
         : null,
-    [selectedOutput, format, formatCtx],
+    [selectedOutput, focusFormat, formatCtx],
   );
 
   // While a part slot is hovered/edited, dim every OTHER slot. The dim pass
@@ -349,10 +479,10 @@ export default function Page() {
     if (!highlightPart) return visualSvg;
     return formatPreviewSvg(
       highlightPartSvg(selectedOutput, highlightPart),
-      format,
+      focusFormat,
       formatCtx,
     );
-  }, [selectedOutput, formatCtx, format, highlightPart, visualSvg]);
+  }, [selectedOutput, formatCtx, focusFormat, highlightPart, visualSvg]);
 
   // The header menu's quick copies: the bare data URI and the CSS snippet,
   // both honoring the CSS settings even while another file type is selected.
@@ -360,40 +490,38 @@ export default function Page() {
     () =>
       visualSvg
         ? toDataUri(ensureSvgXmlns(visualSvg), {
-            encoding: format.cssEncoding,
-            quotes: format.cssQuotes,
+            encoding: focusFormat.cssEncoding,
+            quotes: focusFormat.cssQuotes,
           })
         : null,
-    [visualSvg, format.cssEncoding, format.cssQuotes],
+    [visualSvg, focusFormat.cssEncoding, focusFormat.cssQuotes],
   );
   const css = useMemo(
     () =>
-      visualSvg && formatCtx ? formatCss(visualSvg, format, formatCtx) : null,
-    [visualSvg, format, formatCtx],
+      visualSvg && formatCtx
+        ? formatCss(visualSvg, focusFormat, formatCtx)
+        : null,
+    [visualSvg, focusFormat, formatCtx],
   );
 
   /** The export projection: what Copy, Download, and the Code view produce. */
   const formatted = useMemo(
     () =>
       selectedOutput && formatCtx
-        ? formatOutput(selectedOutput, format, formatCtx)
+        ? formatOutput(selectedOutput, focusFormat, formatCtx)
         : null,
-    [selectedOutput, format, formatCtx],
+    [selectedOutput, focusFormat, formatCtx],
   );
 
+  /** A file's export projection under its own effective format settings. */
   const formatFile = useCallback(
     (svg: SvgDocType) =>
-      formatOutput(outputOf(svg, results[svg.id]), format, {
+      formatOutput(outputOf(svg, results[svg.id]), effectiveOf(svg).format, {
         name: svg.name,
         partColors: svg.partColors,
       }),
-    [results, format],
+    [results, effectiveOf],
   );
-
-  const handleDownloadCurrent = useCallback(() => {
-    if (!formatted) return;
-    downloadFile(formatted.filename, formatted.content, formatted.mime);
-  }, [formatted]);
 
   const handleDownloadZip = useCallback(async () => {
     const files = svgs.map((svg) => {
@@ -401,6 +529,7 @@ export default function Page() {
       return { filename: out.filename, content: out.content };
     });
     if (files.length === 0) return;
+    track("download-zip", { scope: "all", count: files.length });
     try {
       await downloadZip(files);
       toast.success(`Downloading ${files.length} files as a ZIP`);
@@ -414,14 +543,16 @@ export default function Page() {
     const sprite = buildSprite(
       svgs.map((svg) => ({
         symbolId: idPrefix(svg.name),
-        svg: formatPreviewSvg(outputOf(svg, results[svg.id]), format, {
-          name: svg.name,
-          partColors: svg.partColors,
-        }),
+        svg: formatPreviewSvg(
+          outputOf(svg, results[svg.id]),
+          effectiveOf(svg).format,
+          { name: svg.name, partColors: svg.partColors },
+        ),
       })),
     );
     downloadFile("sprite.svg", sprite, "image/svg+xml");
-  }, [svgs, results, format]);
+    track("download-sprite", { count: svgs.length });
+  }, [svgs, results, effectiveOf]);
 
   // Raster export renders the same visual projection the preview shows.
   const rasterCurrent = useMemo(
@@ -433,12 +564,13 @@ export default function Page() {
     () =>
       svgs.map((svg) => ({
         name: svg.name,
-        svg: formatPreviewSvg(outputOf(svg, results[svg.id]), format, {
-          name: svg.name,
-          partColors: svg.partColors,
-        }),
+        svg: formatPreviewSvg(
+          outputOf(svg, results[svg.id]),
+          effectiveOf(svg).format,
+          { name: svg.name, partColors: svg.partColors },
+        ),
       })),
-    [svgs, results, format],
+    [svgs, results, effectiveOf],
   );
 
   // Series rename scope: a folder's files, or a single loose file.
@@ -454,26 +586,119 @@ export default function Page() {
     [svgs],
   );
 
-  // Everything the files sidebar can do to a file or folder.
+  const toOverrideTargets = (target: SettingsTarget): OverrideTarget[] =>
+    target.kind === "folder"
+      ? [{ kind: "folder", id: target.id }]
+      : target.ids.map((id) => ({ kind: "file", id }));
+
+  // Everything the files sidebar can do to files and folders.
   const fileActions = useMemo<FileActions>(
     () => ({
-      removeSvg: (id) => {
-        const name = svgs.find((s) => s.id === id)?.name;
-        void removeSvg(id);
-        if (name) toast.success(`Removed ${name}`);
+      removeSvgs: (ids) => {
+        track("remove-files", { count: ids.length });
+        const name =
+          ids.length === 1 ? svgs.find((s) => s.id === ids[0])?.name : null;
+        void removeSvgs(ids);
+        toast.success(name ? `Removed ${name}` : `Removed ${ids.length} files`);
       },
-      duplicateSvg: (id) => void duplicateSvg(id),
-      renameSvg: (id, name) => void renameSvg(id, name),
-      seriesRename: (folderId) => openSeriesRename(folderId),
-      downloadSvg: (id) => {
-        const svg = svgs.find((s) => s.id === id);
-        if (!svg) return;
-        const out = formatFile(svg);
-        downloadFile(out.filename, out.content, out.mime);
+      duplicateSvgs: (ids) => {
+        track("duplicate-files", { count: ids.length });
+        void duplicateSvgs(ids);
       },
-      renameFolder: (id, name) => void renameFolder(id, name),
-      removeFolder: (id) => void removeFolder(id),
-      duplicateFolder: (id) => void duplicateFolder(id),
+      downloadSvgs: (ids) => {
+        const files = svgs.filter((s) => ids.includes(s.id));
+        if (files.length === 0) return;
+        if (files.length === 1) {
+          track("download-file", {
+            type: effectiveOf(files[0]).format.fileType,
+            via: "sidebar",
+          });
+          const out = formatFile(files[0]);
+          downloadFile(out.filename, out.content, out.mime);
+          return;
+        }
+        const shared = sharedFolderOf(ids, svgs);
+        const zipName = shared
+          ? `${folders.find((f) => f.id === shared)?.name ?? "svgtidy"}.zip`
+          : "svgtidy.zip";
+        track("download-zip", { scope: "selection", count: files.length });
+        downloadZip(
+          files.map((svg) => {
+            const out = formatFile(svg);
+            return { filename: out.filename, content: out.content };
+          }),
+          zipName,
+        )
+          .then(() =>
+            toast.success(`Downloading ${files.length} files as a ZIP`),
+          )
+          .catch(() => toast.error("Couldn't build the ZIP"));
+      },
+      renameSvg: (id, name) => {
+        track("rename-file");
+        void renameSvg(id, name);
+      },
+      seriesRenameFiles: (ids) => {
+        const files = svgs.filter((s) => ids.includes(s.id));
+        if (files.length === 0) return;
+        track("series-rename-open", {
+          scope: "selection",
+          count: files.length,
+        });
+        setSeriesFiles(files);
+      },
+      moveSvgs: (ids, folderId) => {
+        track("move-files", {
+          count: ids.length,
+          to: folderId ? "folder" : "loose",
+        });
+        void moveSvgs(ids, folderId);
+        const target = folderId
+          ? folders.find((f) => f.id === folderId)?.name
+          : null;
+        const what = ids.length === 1 ? "1 file" : `${ids.length} files`;
+        toast.success(
+          target
+            ? `Moved ${what} into “${target}”`
+            : `Moved ${what} out of folder`,
+        );
+      },
+      newFolderFromSelection: (ids) =>
+        void (async () => {
+          track("new-folder", { from: "selection", count: ids.length });
+          const names = svgs
+            .filter((s) => ids.includes(s.id))
+            .map((s) => s.name);
+          const folderId = await addFolder(autoGroupName(names));
+          if (!folderId) return;
+          await moveSvgs(ids, folderId);
+          selectFolder(folderId);
+          setRename({ kind: "folder", id: folderId });
+        })(),
+      newFolder: () =>
+        void (async () => {
+          track("new-folder", { from: "empty" });
+          const folderId = await addFolder("Untitled folder");
+          if (!folderId) return;
+          selectFolder(folderId);
+          setRename({ kind: "folder", id: folderId });
+        })(),
+      renameFolder: (id, name) => {
+        track("rename-folder");
+        void renameFolder(id, name);
+      },
+      removeFolder: (id) => {
+        track("remove-folder", {
+          count: svgs.filter((s) => s.folderId === id).length,
+        });
+        const name = folders.find((f) => f.id === id)?.name;
+        void removeFolder(id);
+        if (name) toast.success(`Deleted “${name}”`);
+      },
+      duplicateFolder: (id) => {
+        track("duplicate-folder");
+        void duplicateFolder(id);
+      },
       downloadFolder: (id) => {
         const folder = folders.find((f) => f.id === id);
         const files = svgs
@@ -483,8 +708,50 @@ export default function Page() {
             return { filename: out.filename, content: out.content };
           });
         if (files.length === 0) return;
+        track("download-zip", { scope: "folder", count: files.length });
         void downloadZip(files, `${folder?.name ?? "svgtidy"}.zip`);
       },
+      seriesRename: (folderId) => {
+        track("series-rename-open", { scope: "folder" });
+        openSeriesRename(folderId);
+      },
+      copySettings: (target) => {
+        track("copy-settings", { kind: target.kind });
+        const source =
+          target.kind === "folder"
+            ? effective.folders.get(target.id)
+            : effective.files.get(target.ids[0]);
+        if (!source) return;
+        setSettingsClipboard(source);
+        toast.success("Settings copied", {
+          description: "Paste them onto any file or folder.",
+        });
+      },
+      pasteSettings: (target) => {
+        if (!settingsClipboard) return;
+        track("paste-settings", {
+          kind: target.kind,
+          count: target.kind === "files" ? target.ids.length : 1,
+        });
+        void replaceOverride(
+          toOverrideTargets(target),
+          snapshotOverride(settingsClipboard),
+        );
+        toast.success("Settings pasted");
+      },
+      clearOverrides: (target) => {
+        track("clear-overrides", { kind: target.kind });
+        void clearOverride(toOverrideTargets(target));
+        toast.success("Overrides cleared");
+      },
+      canPasteSettings: settingsClipboard !== null,
+      hasOverrides: (target) =>
+        target.kind === "folder"
+          ? overrideCount(folders.find((f) => f.id === target.id)?.override) > 0
+          : target.ids.some(
+              (id) =>
+                overrideCount(svgs.find((s) => s.id === id)?.override) > 0,
+            ),
       backupAll: async () => {
         // Back up the stored sources, not the formatted output, so the ZIP
         // round-trips: re-adding it restores the files exactly as they were.
@@ -497,6 +764,7 @@ export default function Page() {
           return { filename: dir ? `${dir}/${name}` : name, content: svg.svg };
         });
         if (files.length === 0) return;
+        track("backup-all", { count: files.length });
         try {
           await downloadZip(files, "svgtidy-backup.zip");
           toast.success(
@@ -508,6 +776,7 @@ export default function Page() {
       },
       clearAll: () => {
         const count = svgs.length;
+        track("clear-all", { count });
         void clearSvgs();
         toast.success(`Removed ${count} ${count === 1 ? "file" : "files"}`);
       },
@@ -515,29 +784,98 @@ export default function Page() {
     [
       svgs,
       folders,
+      effective,
+      settingsClipboard,
       formatFile,
-      removeSvg,
-      duplicateSvg,
+      effectiveOf,
+      removeSvgs,
+      duplicateSvgs,
+      moveSvgs,
       renameSvg,
       openSeriesRename,
+      addFolder,
+      selectFolder,
       renameFolder,
       removeFolder,
       duplicateFolder,
+      replaceOverride,
+      clearOverride,
       clearSvgs,
     ],
+  );
+
+  /** What the hotkeys and header act on: the folder, else the selected files. */
+  const actionTarget = useMemo<MenuTarget | null>(
+    () =>
+      selection.folderId
+        ? { kind: "folder", id: selection.folderId }
+        : fileIds.size > 0
+          ? { kind: "files", ids: [...fileIds] }
+          : null,
+    [selection.folderId, fileIds],
   );
 
   const hasFiles = svgs.length > 0;
   const workspace = ready && hasFiles;
 
-  // Selection-scoped shortcuts (duplicate / download / delete / rename).
-  useAppHotkeys(workspace && !!selected, {
-    onDuplicate: () => selected && fileActions.duplicateSvg(selected.id),
-    onDownload: handleDownloadCurrent,
-    onDelete: () => selected && fileActions.removeSvg(selected.id),
-    onRename: () =>
-      selected && openSeriesRename(selected.folderId ?? null, selected),
+  // Selection-scoped shortcuts, acting on the folder or every selected file.
+  const t = actionTarget;
+  useAppHotkeys(workspace && !!t, {
+    onDuplicate: () => {
+      if (t?.kind === "folder") fileActions.duplicateFolder(t.id);
+      else if (t?.kind === "files") fileActions.duplicateSvgs(t.ids);
+    },
+    onDownload: () => {
+      if (t?.kind === "folder") fileActions.downloadFolder(t.id);
+      else if (t?.kind === "files") fileActions.downloadSvgs(t.ids);
+    },
+    onDelete: () => {
+      if (!t || t.kind === "empty") return;
+      if (t.kind === "folder" || t.ids.length > 1) setDel(t);
+      else fileActions.removeSvgs(t.ids);
+    },
+    onRename: () => {
+      if (t?.kind === "folder") fileActions.seriesRename(t.id);
+      else if (t?.kind === "files" && t.ids.length > 1)
+        fileActions.seriesRenameFiles(t.ids);
+      else if (selected) openSeriesRename(selected.folderId ?? null, selected);
+    },
+    onNewFolderFromSelection: () => {
+      if (t?.kind === "files") fileActions.newFolderFromSelection(t.ids);
+    },
+    onEscape: collapseToAnchor,
+    canGroup: t?.kind === "files",
+    canEscape: fileIds.size > 1 || selection.folderId !== null,
   });
+
+  // A folder or multi-selection reads as an aggregate at the top.
+  const statGroup = useMemo(() => {
+    const files =
+      selection.folderId && scopeFolder
+        ? svgs.filter((s) => s.folderId === scopeFolder.id)
+        : fileIds.size > 1
+          ? selectedFiles
+          : null;
+    if (!files) return null;
+    const label =
+      selection.folderId && scopeFolder
+        ? scopeFolder.name
+        : `${files.length} files selected`;
+    return { label, count: files.length, totals: batchTotals(files, results) };
+  }, [
+    selection.folderId,
+    scopeFolder,
+    svgs,
+    fileIds.size,
+    selectedFiles,
+    results,
+  ]);
+
+  const scopeLabels: Record<Scope, string> = {
+    workspace: "Workspace",
+    folder: "Folder",
+    file: fileIds.size > 1 ? `${fileIds.size} files` : "File",
+  };
 
   const inspector = (
     <div className="flex flex-col">
@@ -546,63 +884,109 @@ export default function Page() {
           svg={selected}
           result={selectedResult}
           batch={{ total: svgs.length, done: totals.done }}
+          group={statGroup}
         />
+        {availableScopes.length > 1 && (
+          <div className="flex flex-col gap-2.5">
+            <Label className="">Settings scope</Label>
+            <p className="text-muted-foreground text-xs">Adjust the settings for the entire workspace, selected folders, or selected files.</p>
+            <ToggleGroup
+              variant="outline"
+              size="sm"
+              spacing={0}
+              className="w-full"
+              aria-label="Settings scope"
+              value={[scope]}
+              onValueChange={(value) => {
+                const next = value[0] as Scope | undefined;
+                if (!next) return;
+                track("scope-change", { scope: next });
+                setScopeChoice({ key: scopeKey, scope: next });
+              }}
+            >
+              {availableScopes.map((s) => (
+                <ToggleGroupItem key={s} value={s} className="flex-auto">
+                  {scopeLabels[s]}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+        )}
         <PresetPicker
-          settings={settings}
-          format={format}
-          onApply={handleApplyPreset}
+          settings={scoped.settings}
+          format={scoped.format}
+          onApply={scoped.applyPreset}
           savedPresets={presets}
           onSave={savePreset}
           onRemove={handleRemovePreset}
+          shareHint={
+            scope === "workspace"
+              ? "Copy share link"
+              : "Copy share link (workspace settings)"
+          }
         />
       </div>
       <InspectorSection
         title="Format"
-        status={
-          formatChangedCount === 0
-            ? "Using defaults"
-            : `${formatChangedCount} changed from default`
-        }
-      >
-        <FormatPanel
-          svg={selected}
-          optimizedSvg={selectedOutput}
-          format={format}
-          onFormatChange={setFormat}
-          onRename={(id, name) => void renameSvg(id, name)}
-          onSeriesRename={
-            selected
-              ? () => openSeriesRename(selected.folderId ?? null, selected)
-              : null
-          }
-          onPartColorsChange={(id, partColors) =>
-            void setPartColors(id, partColors)
-          }
-          onPartHover={setHighlightPart}
-        />
-      </InspectorSection>
-      <InspectorSection
-        title="Optimizations"
-        defaultOpen
-        status={
-          changedCount === 0
-            ? "Using defaults"
-            : `${changedCount} changed from default`
-        }
+        status={scoped.status.format}
         actions={
           <Button
             variant="ghost"
             size="xs"
-            onClick={reset}
-            disabled={changedCount === 0}
-            aria-label="Reset settings to defaults"
+            onClick={scoped.resetFormat}
+            disabled={!scoped.canResetFormat}
+            aria-label="Reset format settings"
           >
             <RotateCcwIcon />
             Reset
           </Button>
         }
       >
-        <SettingsPanel settings={settings} onChange={setSetting} />
+        <FormatPanel
+          svg={selected}
+          optimizedSvg={selectedOutput}
+          format={scoped.format}
+          onFormatChange={scoped.onFormat}
+          marked={scoped.marked}
+          onClear={scoped.onClear}
+          onRename={(id, name) => fileActions.renameSvg(id, name)}
+          onSeriesRename={
+            selected
+              ? () => openSeriesRename(selected.folderId ?? null, selected)
+              : null
+          }
+          onPartColorsChange={(id, partColors) => {
+            trackDebounced("part-color", "part-color-change", {
+              parts: Object.keys(partColors).length,
+            });
+            void setPartColors(id, partColors);
+          }}
+          onPartHover={setHighlightPart}
+        />
+      </InspectorSection>
+      <InspectorSection
+        title="Optimizations"
+        defaultOpen
+        status={scoped.status.settings}
+        actions={
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={scoped.resetSettings}
+            disabled={!scoped.canResetSettings}
+            aria-label="Reset optimization settings"
+          >
+            <RotateCcwIcon />
+            Reset
+          </Button>
+        }
+      >
+        <SettingsPanel
+          settings={scoped.settings}
+          onChange={scoped.onSetting}
+          marked={scoped.marked}
+          onClear={scoped.onClear}
+        />
       </InspectorSection>
     </div>
   );
@@ -618,10 +1002,15 @@ export default function Page() {
                 svgs={svgs}
                 folders={folders}
                 results={results}
-                selectedId={selected?.id ?? null}
-                onSelect={setSelectedId}
+                selection={selection}
+                selectedFileIds={fileIds}
+                onSelect={select}
+                onSelectFolder={selectFolder}
+                onClearSelection={clearSelection}
                 actions={fileActions}
-                onAddFiles={handleAddFiles}
+                onAddFiles={addFromPicker}
+                onRenameRequest={setRename}
+                onDeleteRequest={setDel}
                 filterRef={filterRef}
               />
             </>
@@ -646,12 +1035,18 @@ export default function Page() {
                       formatted={formatted}
                       dataUri={dataUri}
                       css={css}
-                      fileType={format.fileType}
+                      fileType={focusFormat.fileType}
                       fileCount={svgs.length}
                       onDownloadZip={() => void handleDownloadZip()}
                       onDownloadSprite={handleDownloadSprite}
-                      onExportImage={setExportFormat}
-                      onGenerateFavicons={() => setFaviconOpen(true)}
+                      onExportImage={(format) => {
+                        track("open-export-image", { format });
+                        setExportFormat(format);
+                      }}
+                      onGenerateFavicons={() => {
+                        track("open-favicons");
+                        setFaviconOpen(true);
+                      }}
                     />
                   )}
 
@@ -679,12 +1074,29 @@ export default function Page() {
                           <ScaleIcon className="size-4" />
                         </div>
                       </HoverCardTrigger>
-                      <HoverCardContent className="w-64 text-xs flex flex-col gap-3">
-                        <p>SVGtidy is an open-source project available for free under the <a href="https://github.com/dereknelsen/svgtidy/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline">MIT license</a> and was heavily inspired by{" "}
-                          <a href="https://github.com/jakearchibald/svgomg" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline">
+                      <HoverCardContent className="flex w-64 flex-col gap-3 text-xs z-50">
+                        <p>
+                          SVGtidy is an open-source project available for free
+                          under the{" "}
+                          <a
+                            href="https://github.com/dereknelsen/svgtidy/blob/main/LICENSE"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-primary underline"
+                          >
+                            MIT license
+                          </a>{" "}
+                          and was heavily inspired by{" "}
+                          <a
+                            href="https://github.com/jakearchibald/svgomg"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-primary underline"
+                          >
                             Jake Archibald&apos;s SVGOMG
                           </a>
-                          . Many thanks for the original!</p>
+                          . Many thanks for the original!
+                        </p>
                       </HoverCardContent>
                     </HoverCard>
                     <ThemeToggle />
@@ -705,7 +1117,7 @@ export default function Page() {
                 ) : !hasFiles ? (
                   <div className="motion-safe:animate-in motion-safe:fade-in-0 flex flex-1 items-center justify-center overflow-auto p-6 motion-safe:duration-200">
                     <div className="w-full max-w-lg">
-                      <Dropzone onFiles={handleAddFiles} />
+                      <Dropzone onFiles={addFromHero} />
                       <p className="text-muted-foreground mt-4 text-center text-xs text-balance">
                         Files and presets stay on this device. Close the tab and
                         your work is still here when you come back.
@@ -747,10 +1159,22 @@ export default function Page() {
         </CaptureFilesSidebar>
       </SidebarProvider>
 
+      <FileDialogs
+        svgs={svgs}
+        folders={folders}
+        actions={fileActions}
+        rename={rename}
+        onRenameClose={() => setRename(null)}
+        del={del}
+        onDeleteClose={() => setDel(null)}
+      />
       <SeriesRenameDialog
         files={seriesFiles}
         onOpenChange={(open) => !open && setSeriesFiles(null)}
-        onRename={(updates) => void renameSvgs(updates)}
+        onRename={(updates) => {
+          track("series-rename-commit", { count: updates.length });
+          void renameSvgs(updates);
+        }}
       />
       <ExportImageDialog
         format={exportFormat}

@@ -3,6 +3,7 @@ import {
   DEFAULT_FORMAT,
   FORMAT_DESCRIPTORS,
   FORMAT_KEYS,
+  parseFormatOverride,
   parseFormatSettings,
 } from "./format-settings";
 import {
@@ -58,5 +59,18 @@ describe("parseFormatSettings", () => {
     for (const key of FORMAT_KEYS) {
       expect(optimizeKeys.has(FORMAT_DESCRIPTORS[key].urlKey)).toBe(false);
     }
+  });
+});
+
+describe("parseFormatOverride", () => {
+  it("accepts a partial and strips foreign keys", () => {
+    expect(
+      parseFormatOverride({ fileType: "jsx", removeComments: false }),
+    ).toEqual({ fileType: "jsx" });
+  });
+
+  it("rejects the whole input on an invalid value", () => {
+    expect(parseFormatOverride({ fileType: "png", color: "red" })).toEqual({});
+    expect(parseFormatOverride(null)).toEqual({});
   });
 });

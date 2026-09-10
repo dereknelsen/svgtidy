@@ -17,8 +17,24 @@ The compact query-param name for a setting (`rc`, `fp`, `mpass`). Frozen: they a
 _Avoid_: param, short code
 
 **Preset**:
-A complete, named snapshot of both halves of the model (optimization `Settings` plus `FormatSettings`, stored flat), built-in (ships with the app) or saved (user-created, stored in the DB). Saved presets are unvalidated until they cross into the models via `parseSettings` / `parseFormatSettings`; presets that predate format settings apply with format defaults.
+A complete, named snapshot of both halves of the model (optimization `Settings` plus `FormatSettings`, stored flat), built-in (ships with the app) or saved (user-created, stored in the DB). Saved presets are unvalidated until they cross into the models via `parseSettings` / `parseFormatSettings`; presets that predate format settings apply with format defaults. Applied in folder or file scope, a preset pins every key on that layer.
 _Avoid_: profile, template
+
+**Override**:
+The partial, flat snapshot of settings (both halves, `Partial<Settings & FormatSettings>`) a folder or file pins for itself, stored as `override` on the document. A pinned key stays pinned even when it equals the value beneath it, so counts are pins, not differences. Validated at the seam by `parseOverride` (`lib/effective-settings.ts`). See ADR-0002.
+_Avoid_: per-file settings, custom settings, exception
+
+**Effective settings**:
+What a file is actually optimized and formatted with: the workspace base (URL) ⊕ its folder's override ⊕ its own override. Resolved for every file and folder in one pass by `resolveAll`; every consumer (optimizer jobs, preview, download, ZIP, sprite, raster) reads a file's effective settings, never the base directly.
+_Avoid_: resolved settings, merged settings, computed settings
+
+**Scope**:
+Which layer the inspector is editing: Workspace (the URL), Folder, or File. Defaults to the selection's natural layer and can be stepped up with the segmented control under the stat card. Panels always show effective values; a dot marks a key pinned at the current scope (or, in workspace scope, changed from default) and its undo returns the key to inheriting.
+_Avoid_: level, mode, target layer
+
+**Settings clipboard**:
+The in-memory copy taken by "Copy settings" on a file or folder: its effective settings, both halves. "Paste settings" replaces the target's override with every key pinned, the same as applying a preset; "Clear overrides" returns the target to inheriting.
+_Avoid_: settings buffer, template
 
 **Risky**:
 A setting that can change how the SVG renders, not just its size. Flagged in the panel with a warning.
@@ -53,19 +69,23 @@ The localStorage snapshot that seeds format settings when the URL carries none. 
 _Avoid_: sticky settings, remembered settings
 
 **Files sidebar**:
-The collapsible left rail listing folders and files, grouped by date, with the filter box at the top. It is the only file list. Collapses to an icon rail of thumbnails on desktop (`⌘B`) and to a sheet on mobile.
+The collapsible left rail listing folders and files, grouped by date, with the filter box and the [+] menu (add files, new folder) at the top. It is the only file list. Rows multi-select with shift-click (a range over visible rows) and ⌘-click (toggle); a folder row selects the folder. Every row action lives in both the row's "…" menu and the right-click context menu, and files drag into folders (or onto the top strip to move out). Collapses to an icon rail of thumbnails on desktop (`⌘B`) and to a sheet on mobile.
 _Avoid_: file tray, file list panel
 
+**Selection**:
+The sidebar's current pick: a set of files with one **anchor** (the last plain- or ⌘-clicked file, which the canvas previews and shift-click ranges from), or a single folder. Hotkeys, the "…" menu, and the context menu act on the whole selection. Nothing explicitly selected means the anchor alone, falling back to the newest file. Pure model in `lib/selection.ts`.
+_Avoid_: active files, checked files, highlighted rows
+
 **Folder**:
-A one-level-deep, named grouping of files, created by hand or automatically when several files arrive in one gesture (named by their common filename prefix, else the drop's date-time). Deleting a folder deletes the files inside it, behind a confirmation.
-_Avoid_: group, collection, directory
+A one-level-deep, named grouping of files, created by hand ([+] menu, `⌘G` from a selection) or automatically when several files arrive in one gesture (named by their common filename prefix, else the drop's date-time). Selectable, a drop target, and the unit of "export like this": a folder may carry an override its files inherit, and downloads as a ZIP where each file uses its own effective settings. Deleting a folder deletes the files inside it, behind a confirmation.
+_Avoid_: group, export group, collection, directory
 
 **Inspector**:
-The collapsible right rail (`⌘I`; a sheet on mobile) holding the stat card, preset picker, the Format panel, and the Optimizations panel. Download and copy actions live in the header, not here.
+The collapsible right rail (`⌘I`; a sheet on mobile) holding the stat card, the scope control, the preset picker, the Format panel, and the Optimizations panel. Download and copy actions live in the header, not here.
 _Avoid_: settings panel, sidebar
 
 **Stat card**:
-The block at the top of the inspector showing original → optimized bytes and the savings percentage for the current selection.
+The block at the top of the inspector showing original → optimized bytes and the savings percentage for the anchor file, or the aggregate over the selected folder or multi-selection.
 _Avoid_: totals strip, stats bar
 
 **Raster export**:
