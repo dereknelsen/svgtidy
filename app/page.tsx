@@ -679,18 +679,12 @@ export default function Page() {
                           <ScaleIcon className="size-4" />
                         </div>
                       </HoverCardTrigger>
-                      <HoverCardContent className="w-64 text-xs">
-                        SVGtidy was inspired by{" "}
-                        <a
-                          href="https://github.com/jakearchibald/svgomg"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:text-primary underline"
-                        >
-                          {" "}
-                          Jake Archibald&apos;s SVGOMG
-                        </a>
-                        . Many thanks for the original!
+                      <HoverCardContent className="w-64 text-xs flex flex-col gap-3">
+                        <p>SVGtidy is an open-source project available for free under the <a href="https://github.com/dereknelsen/svgtidy/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline">MIT license</a> and was heavily inspired by{" "}
+                          <a href="https://github.com/jakearchibald/svgomg" target="_blank" rel="noopener noreferrer" className="hover:text-primary underline">
+                            Jake Archibald&apos;s SVGOMG
+                          </a>
+                          . Many thanks for the original!</p>
                       </HoverCardContent>
                     </HoverCard>
                     <ThemeToggle />

@@ -6,6 +6,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
 import { cn } from "@/lib/utils";
 
 const fontSans = localFont({
@@ -80,6 +81,11 @@ export default function RootLayout({
           </Suspense>
           <Toaster position="bottom-right" />
         </ThemeProvider>
+
+        {/* Umami analytics */}
+        {process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL && process.env.NEXT_PUBLIC_GUESTBOOK_DOMAIN && process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
+          <Script src={process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL} data-do-not-track="true" data-exclude-search="true" data-domains={process.env.NEXT_PUBLIC_GUESTBOOK_DOMAIN} data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID} strategy="afterInteractive" />
+        )}
       </body>
     </html>
   );
